@@ -28,7 +28,6 @@ export function IslamicStar({ className = "" }: { className?: string }) {
         opacity="0.15"
         stroke="currentColor"
         strokeWidth="1"
-        opacity2="0.3"
       />
     </svg>
   );
