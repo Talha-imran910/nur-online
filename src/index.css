@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700;800&family=Scheherazade+New:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -36,7 +36,6 @@
 
     --radius: 0.75rem;
 
-    /* Custom Islamic theme tokens */
     --emerald: 153 60% 24%;
     --emerald-light: 153 40% 40%;
     --emerald-glow: 153 50% 35%;
@@ -80,55 +79,133 @@
 }
 
 @layer components {
-  .islamic-pattern-bg {
-    background-image: url('/src/assets/islamic-pattern.jpg');
-    background-size: 300px;
-    background-repeat: repeat;
-    opacity: 0.05;
-  }
-
   .gradient-hero {
     background: var(--gradient-hero);
   }
-
   .gradient-gold {
     background: var(--gradient-gold);
   }
-
   .text-gradient-gold {
     background: var(--gradient-gold);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-
   .shadow-elegant {
     box-shadow: var(--shadow-elegant);
   }
-
   .shadow-gold {
     box-shadow: var(--shadow-gold);
   }
-
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
-
   .glass-card {
     @apply bg-card/80 backdrop-blur-md border border-border/50;
     box-shadow: var(--shadow-card);
+  }
+
+  /* Islamic geometric overlay */
+  .islamic-overlay {
+    position: relative;
+  }
+  .islamic-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('/src/assets/islamic-pattern.jpg') repeat;
+    background-size: 200px;
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Scroll-reveal animation base */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-left {
+    opacity: 0;
+    transform: translateX(-60px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-left.revealed {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .reveal-right {
+    opacity: 0;
+    transform: translateX(60px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-right.revealed {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .reveal-scale {
+    opacity: 0;
+    transform: scale(0.85);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-scale.revealed {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Stagger children */
+  .stagger-children > * {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .stagger-children.revealed > *:nth-child(1) { transition-delay: 0.05s; opacity: 1; transform: translateY(0); }
+  .stagger-children.revealed > *:nth-child(2) { transition-delay: 0.1s; opacity: 1; transform: translateY(0); }
+  .stagger-children.revealed > *:nth-child(3) { transition-delay: 0.15s; opacity: 1; transform: translateY(0); }
+  .stagger-children.revealed > *:nth-child(4) { transition-delay: 0.2s; opacity: 1; transform: translateY(0); }
+  .stagger-children.revealed > *:nth-child(5) { transition-delay: 0.25s; opacity: 1; transform: translateY(0); }
+  .stagger-children.revealed > *:nth-child(6) { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
+
+  /* Parallax helper */
+  .parallax-slow {
+    will-change: transform;
+    transition: transform 0.1s linear;
   }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.6s ease-out forwards;
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   .animate-slide-up {
-    animation: slideUp 0.6s ease-out forwards;
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   .animate-float {
     animation: float 6s ease-in-out infinite;
+  }
+  .animate-pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+  }
+  .animate-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  .animate-spin-slow {
+    animation: spinSlow 20s linear infinite;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hover-lift {
+    @apply transition-all duration-500 ease-out;
+  }
+  .hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px -15px hsl(var(--navy) / 0.2);
   }
 }
 
@@ -138,11 +215,37 @@
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
+  from { opacity: 0; transform: translateY(40px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px hsl(var(--gold) / 0.2); }
+  50% { box-shadow: 0 0 40px hsl(var(--gold) / 0.4), 0 0 80px hsl(var(--gold) / 0.1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Geometric star SVG for decorations */
+.islamic-star {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35' fill='none' stroke='%23c8a94e' stroke-width='1' opacity='0.15'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
 }
