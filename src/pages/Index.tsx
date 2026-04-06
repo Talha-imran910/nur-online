@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import HeroSection from "@/components/landing/HeroSection";
 import SubjectsSection from "@/components/landing/SubjectsSection";
 import FeaturedCourses from "@/components/landing/FeaturedCourses";
+import InstructorSection from "@/components/landing/InstructorSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import CTASection from "@/components/landing/CTASection";
 
@@ -13,6 +14,7 @@ export default function Index() {
       <HeroSection />
       <SubjectsSection />
       <FeaturedCourses />
+      <InstructorSection />
       <TestimonialsSection />
       <CTASection />
       <Footer />
