@@ -3,51 +3,51 @@ import { courses, sampleAssignments } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, PlayCircle, Clock, Award, CheckCircle, FileText, LogOut } from "lucide-react";
-import bismillahLogo from "@/assets/bismillah-logo.png";
+import { BookOpen, PlayCircle, Award, CheckCircle, LogOut } from "lucide-react";
+import { useScrollReveal } from "@/hooks/use-animations";
+import elafLogo from "@/assets/elaf-logo.png";
+import AssignmentSubmission from "@/components/AssignmentSubmission";
 
-const enrolledCourseIds = ["quran-101", "fiqh-salah", "seerah-101"];
-const courseProgress: Record<string, number> = { "quran-101": 65, "fiqh-salah": 30, "seerah-101": 10 };
+const enrolledCourseIds = ["nazra-beginners", "daily-duas", "tajweed-mastery"];
+const courseProgress: Record<string, number> = { "nazra-beginners": 65, "daily-duas": 30, "tajweed-mastery": 10 };
 
 export default function StudentDashboard() {
   const enrolledCourses = courses.filter((c) => enrolledCourseIds.includes(c.id));
+  const statsRef = useScrollReveal();
+  const coursesRef = useScrollReveal(0.1);
+  const assignRef = useScrollReveal(0.1);
+
+  const myAssignments = sampleAssignments.filter((a) => enrolledCourseIds.includes(a.courseId));
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src={bismillahLogo} alt="" className="h-8 w-8 object-contain brightness-200" />
-            <span className="font-serif text-lg font-bold text-primary-foreground">Noor Academy</span>
+            <img src={elafLogo} alt="" className="h-9 w-9 object-contain brightness-200" />
+            <span className="font-serif text-lg font-bold text-primary-foreground">Elaf-ul-Quran</span>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-primary-foreground/70">Assalamu Alaikum, Student</span>
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </Link>
+            <span className="text-sm text-primary-foreground/70">Assalamu Alaikum 🌙</span>
+            <Link to="/"><Button variant="ghost" size="sm" className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"><LogOut className="h-4 w-4" /></Button></Link>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Welcome */}
-        <div className="mb-8">
+        <div className="mb-8 animate-slide-up">
           <h1 className="font-serif text-3xl font-bold text-foreground">My Learning Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Continue your journey of knowledge</p>
+          <p className="text-muted-foreground mt-1">Continue your journey with the Quran ✨</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div ref={statsRef} className="stagger-children grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { icon: BookOpen, label: "Enrolled", value: enrolledCourses.length, color: "text-primary" },
-            { icon: PlayCircle, label: "In Progress", value: enrolledCourses.length - 1, color: "text-gold" },
+            { icon: PlayCircle, label: "In Progress", value: enrolledCourses.length, color: "text-gold" },
             { icon: CheckCircle, label: "Completed", value: 0, color: "text-emerald" },
             { icon: Award, label: "Avg Score", value: "92%", color: "text-gold" },
           ].map((s) => (
-            <div key={s.label} className="glass-card rounded-xl p-5">
+            <div key={s.label} className="glass-card rounded-xl p-5 hover-lift">
               <s.icon className={`h-6 w-6 ${s.color} mb-2`} />
               <p className="text-2xl font-bold text-foreground">{s.value}</p>
               <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -55,53 +55,36 @@ export default function StudentDashboard() {
           ))}
         </div>
 
-        {/* My Courses */}
         <h2 className="font-serif text-2xl font-bold text-foreground mb-4">My Courses</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <div ref={coursesRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {enrolledCourses.map((course) => {
             const progress = courseProgress[course.id] || 0;
             return (
-              <div key={course.id} className="glass-card rounded-xl p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-serif text-lg font-bold text-foreground line-clamp-2">{course.title}</h3>
-                  <Badge variant="secondary" className="shrink-0 ml-2">{progress}%</Badge>
+              <div key={course.id} className="glass-card rounded-xl overflow-hidden hover-lift">
+                <div className="h-32 overflow-hidden relative">
+                  <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/60 to-transparent" />
+                  <Badge className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm text-foreground">{progress}%</Badge>
                 </div>
-                <Progress value={progress} className="h-2 mb-3" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{course.lessons} lessons • {course.duration}</span>
+                <div className="p-5">
+                  <h3 className="font-serif text-base font-bold text-foreground line-clamp-2">{course.title}</h3>
+                  <Progress value={progress} className="h-2 my-3" />
+                  <span className="text-xs text-muted-foreground">{course.lessons} lessons • {course.duration}</span>
+                  <Link to={`/player/${course.id}`}>
+                    <Button variant="emerald" size="sm" className="w-full mt-3 group">
+                      <PlayCircle className="mr-1 h-4 w-4 transition-transform group-hover:scale-125" /> Continue
+                    </Button>
+                  </Link>
                 </div>
-                <Link to={`/player/${course.id}`}>
-                  <Button variant="emerald" size="sm" className="w-full mt-4">
-                    <PlayCircle className="mr-1 h-4 w-4" /> Continue Learning
-                  </Button>
-                </Link>
               </div>
             );
           })}
         </div>
 
-        {/* Recent Assignments */}
         <h2 className="font-serif text-2xl font-bold text-foreground mb-4">Assignments</h2>
-        <div className="space-y-3">
-          {sampleAssignments.map((a) => (
-            <div key={a.id} className="glass-card rounded-xl p-5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <div className="min-w-0">
-                  <h4 className="font-medium text-foreground truncate">{a.title}</h4>
-                  <p className="text-xs text-muted-foreground">Due: {a.dueDate}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {a.submitted ? (
-                  <Badge className="bg-emerald/10 text-emerald-light border-emerald/30">
-                    Graded: {a.grade}%
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">Pending</Badge>
-                )}
-              </div>
-            </div>
+        <div ref={assignRef} className="stagger-children space-y-3">
+          {myAssignments.map((a) => (
+            <AssignmentSubmission key={a.id} assignment={a} />
           ))}
         </div>
       </div>

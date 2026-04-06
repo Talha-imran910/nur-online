@@ -1,17 +1,20 @@
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { courses, subjects } from "@/lib/mock-data";
+import { courses, subjects, INSTRUCTOR } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Clock, Users, BookOpen, PlayCircle, CheckCircle, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
 import { useState } from "react";
-import quranStudy from "@/assets/quran-study.jpg";
+import { useScrollReveal } from "@/hooks/use-animations";
+import { IslamicDivider, ArabicQuote } from "@/components/IslamicDecorations";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
   const course = courses.find((c) => c.id === courseId);
   const [openUnits, setOpenUnits] = useState<string[]>(course?.units.map((u) => u.id) || []);
+  const currRef = useScrollReveal(0.1);
+  const instrRef = useScrollReveal();
 
   if (!course) {
     return (
@@ -30,23 +33,19 @@ export default function CourseDetail() {
 
   const subject = subjects.find((s) => s.id === course.subject);
   const totalLessons = course.units.reduce((acc, u) => acc + u.lessons.length, 0);
-
-  const toggleUnit = (id: string) => {
-    setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  };
+  const toggleUnit = (id: string) => setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      {/* Hero */}
-      <section className="relative">
-        <div className="absolute inset-0">
-          <img src={quranStudy} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 gradient-hero opacity-90" />
+      <section className="relative overflow-hidden islamic-overlay">
+        <div className="absolute inset-0 z-0">
+          <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 gradient-hero opacity-92" />
         </div>
         <div className="relative z-10 container mx-auto px-4 py-16">
-          <div className="max-w-3xl">
+          <div className="max-w-3xl animate-slide-up">
             <div className="flex gap-2 mb-4">
               <Badge className="bg-gold/20 text-gold border-gold/30">{subject?.icon} {subject?.name}</Badge>
               <Badge className={course.isFree ? "bg-emerald/20 text-emerald-light border-emerald/30" : "bg-gold/20 text-gold border-gold/30"}>
@@ -55,43 +54,39 @@ export default function CourseDetail() {
               <Badge className="bg-cream/10 text-cream/80 border-cream/20">{course.level}</Badge>
             </div>
             <h1 className="font-serif text-4xl md:text-5xl font-bold text-cream">{course.title}</h1>
-            <p className="mt-4 text-cream/70 text-lg leading-relaxed">{course.description}</p>
-
-            <div className="mt-6 flex flex-wrap gap-6 text-cream/60 text-sm">
+            <p className="mt-4 text-cream/65 text-lg leading-relaxed">{course.description}</p>
+            <div className="mt-6 flex flex-wrap gap-6 text-cream/50 text-sm">
               <span className="flex items-center gap-2"><BookOpen className="h-4 w-4" />{totalLessons} lessons</span>
               <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{course.duration}</span>
               <span className="flex items-center gap-2"><Users className="h-4 w-4" />{course.students} students</span>
               <span className="flex items-center gap-2"><Star className="h-4 w-4 text-gold" />{course.rating} rating</span>
             </div>
-
             <div className="mt-8 flex gap-4">
               <Link to="/login">
-                <Button variant="hero" size="lg">Enroll Now</Button>
+                <Button variant="hero" size="lg" className="animate-pulse-glow">Enroll Now</Button>
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Curriculum */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
-          <h2 className="font-serif text-3xl font-bold text-foreground mb-8">Course Curriculum</h2>
+          <div ref={currRef} className="reveal">
+            <h2 className="font-serif text-3xl font-bold text-foreground mb-2">Course Curriculum</h2>
+            <IslamicDivider className="mb-8" opacity={0.15} />
+          </div>
 
           <div className="space-y-4">
-            {course.units.map((unit) => (
-              <div key={unit.id} className="glass-card rounded-xl overflow-hidden">
-                <button
-                  onClick={() => toggleUnit(unit.id)}
-                  className="w-full flex items-center justify-between p-5 hover:bg-muted/30 transition-colors"
-                >
+            {course.units.map((unit, ui) => (
+              <div key={unit.id} className="glass-card rounded-xl overflow-hidden animate-slide-up" style={{ animationDelay: `${ui * 0.1}s` }}>
+                <button onClick={() => toggleUnit(unit.id)} className="w-full flex items-center justify-between p-5 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
                     {openUnits.includes(unit.id) ? <ChevronDown className="h-5 w-5 text-primary" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                    <h3 className="font-serif text-lg font-bold text-foreground">{unit.title}</h3>
+                    <h3 className="font-serif text-lg font-bold text-foreground text-left">{unit.title}</h3>
                   </div>
                   <span className="text-sm text-muted-foreground">{unit.lessons.length} lessons</span>
                 </button>
-
                 {openUnits.includes(unit.id) && (
                   <div className="border-t border-border">
                     {unit.lessons.map((lesson) => (
@@ -113,22 +108,24 @@ export default function CourseDetail() {
             ))}
           </div>
 
-          {/* Instructor */}
-          <div className="mt-16 glass-card rounded-xl p-8">
-            <h2 className="font-serif text-3xl font-bold text-foreground mb-4">Your Instructor</h2>
+          <div ref={instrRef} className="reveal mt-16 glass-card rounded-2xl p-8">
+            <h2 className="font-serif text-2xl font-bold text-foreground mb-4">Your Instructor</h2>
             <div className="flex items-start gap-6">
-              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-3xl shrink-0">
-                🧕
-              </div>
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-4xl shrink-0 animate-float">🧕</div>
               <div>
-                <h3 className="font-serif text-xl font-bold text-foreground">{course.instructor}</h3>
-                <p className="text-muted-foreground mt-2 leading-relaxed">
-                  A dedicated Islamic scholar with years of experience in teaching Quran, Hadith, and Islamic studies.
-                  Passionate about making authentic Islamic knowledge accessible to students of all levels.
-                </p>
+                <h3 className="font-serif text-xl font-bold text-foreground">{INSTRUCTOR.name}</h3>
+                <p className="text-sm text-gold mb-3">{INSTRUCTOR.academy}</p>
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> Online Worldwide</span>
+                  <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> Female & Kids Friendly</span>
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Flexible Timings</span>
+                </div>
               </div>
             </div>
           </div>
+
+          <ArabicQuote text="فَاذْكُرُونِي أَذْكُرْكُمْ" className="mt-10" />
+          <p className="text-xs text-muted-foreground text-center mt-1 italic">"Remember Me, and I will remember you" — Quran 2:152</p>
         </div>
       </section>
 

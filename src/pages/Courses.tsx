@@ -7,11 +7,14 @@ import { courses, subjects } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useScrollReveal } from "@/hooks/use-animations";
+import { ArabicQuote } from "@/components/IslamicDecorations";
 
 export default function Courses() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const activeSubject = searchParams.get("subject") || "all";
+  const gridRef = useScrollReveal(0.1);
 
   const filtered = useMemo(() => {
     let result = courses;
@@ -24,44 +27,27 @@ export default function Courses() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      {/* Header */}
-      <section className="gradient-hero py-16 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-cream">Our Courses</h1>
-          <p className="mt-4 text-cream/70 max-w-xl mx-auto">
-            Explore our collection of authentic Islamic courses
+      <section className="gradient-hero py-16 px-4 relative overflow-hidden islamic-overlay">
+        <div className="container mx-auto text-center relative z-10">
+          <ArabicQuote text="اقْرَأْ" className="!text-gold/30 mb-2" />
+          <h1 className="font-serif text-4xl md:text-5xl font-bold text-cream animate-slide-up">Our Courses</h1>
+          <p className="mt-4 text-cream/60 max-w-xl mx-auto animate-slide-up" style={{ animationDelay: "0.1s" }}>
+            Explore our collection of authentic Quranic courses by Ustadha Afshan Imran
           </p>
 
-          <div className="mt-8 max-w-md mx-auto relative">
+          <div className="mt-8 max-w-md mx-auto relative animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search courses..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 bg-background/90 border-none"
-            />
+            <Input placeholder="Search courses..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-background/90 border-none" />
           </div>
         </div>
       </section>
 
       <section className="flex-1 py-12 px-4">
         <div className="container mx-auto">
-          {/* Filters */}
           <div className="flex flex-wrap gap-2 mb-8">
-            <Button
-              variant={activeSubject === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSearchParams({})}
-            >
-              All
-            </Button>
+            <Button variant={activeSubject === "all" ? "default" : "outline"} size="sm" onClick={() => setSearchParams({})}>All</Button>
             {subjects.map((s) => (
-              <Button
-                key={s.id}
-                variant={activeSubject === s.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSearchParams({ subject: s.id })}
-              >
+              <Button key={s.id} variant={activeSubject === s.id ? "default" : "outline"} size="sm" onClick={() => setSearchParams({ subject: s.id })}>
                 {s.icon} {s.name}
               </Button>
             ))}
@@ -73,10 +59,8 @@ export default function Courses() {
               <p className="mt-2">Try adjusting your filters or search term.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((c) => (
-                <CourseCard key={c.id} course={c} />
-              ))}
+            <div ref={gridRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((c) => (<CourseCard key={c.id} course={c} />))}
             </div>
           )}
         </div>
