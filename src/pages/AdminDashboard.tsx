@@ -343,7 +343,7 @@ function AddCourseDialog() {
           <div className="space-y-2">
             <Label>First Video Link (YouTube)</Label>
             <div className="flex items-center gap-2">
-              <Youtube className="h-5 w-5 text-destructive shrink-0" />
+              <Video className="h-5 w-5 text-destructive shrink-0" />
               <Input placeholder="Paste YouTube link here" />
             </div>
             <p className="text-xs text-muted-foreground">Upload your video to YouTube first, then paste the link</p>
@@ -377,7 +377,7 @@ function AddLessonDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button className="glass-card rounded-xl p-6 text-center hover-lift cursor-pointer border-2 border-dashed border-gold/20 hover:border-gold/40 transition-colors w-full">
-          <Youtube className="h-8 w-8 text-gold mx-auto mb-2" />
+          <Video className="h-8 w-8 text-gold mx-auto mb-2" />
           <p className="font-serif font-bold text-foreground">Add Lesson</p>
           <p className="text-xs text-muted-foreground mt-1">Add a video to existing course</p>
         </button>
@@ -403,7 +403,7 @@ function AddLessonDialog() {
           <div className="space-y-2">
             <Label>YouTube Video Link *</Label>
             <div className="flex items-center gap-2">
-              <Youtube className="h-5 w-5 text-destructive shrink-0" />
+              <Video className="h-5 w-5 text-destructive shrink-0" />
               <Input placeholder="https://youtube.com/watch?v=..." required />
             </div>
             <p className="text-xs text-muted-foreground">
