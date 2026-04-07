@@ -10,8 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen, Users, FileText, BarChart3, Plus, Edit, Eye, LogOut,
-  GraduationCap, Star, Upload, Youtube, CheckCircle2, Clock, Trash2,
-  ChevronDown, ChevronUp, Save, X
+  GraduationCap, Star, Upload, Video, CheckCircle2, Clock,
+  Save
 } from "lucide-react";
 import elafLogo from "@/assets/elaf-logo.png";
 import {
