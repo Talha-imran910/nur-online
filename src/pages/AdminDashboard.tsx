@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BookOpen, Users, FileText, BarChart3, Plus, Edit, Eye, LogOut,
   GraduationCap, Star, Upload, Video, CheckCircle2, Clock,
-  Save, TrendingUp, Award, MessageSquare, ChevronRight, Sparkles
+  Save, TrendingUp, Award, MessageSquare, ChevronRight, Sparkles,
+  Radio, ExternalLink, HelpCircle, Copy
 } from "lucide-react";
 import elafLogo from "@/assets/elaf-logo.png";
 import {
@@ -30,6 +31,38 @@ export default function AdminDashboard() {
   const totalLessons = courses.reduce((acc, c) => acc + c.lessons, 0);
   const pendingGrading = sampleAssignments.filter((a) => !a.submitted).length;
 
+  // Live class state
+  const [isLive, setIsLive] = useState(() => {
+    try {
+      const d = localStorage.getItem("elaf_live_class");
+      return d ? JSON.parse(d).isLive : false;
+    } catch { return false; }
+  });
+  const [liveTitle, setLiveTitle] = useState("Live Tajweed Class");
+  const [liveLink, setLiveLink] = useState("");
+
+  const toggleLive = () => {
+    if (isLive) {
+      localStorage.removeItem("elaf_live_class");
+      setIsLive(false);
+      toast({ title: "Live Class Ended 🔴", description: "Students will no longer see the live banner." });
+    } else {
+      if (!liveLink.trim()) {
+        toast({ title: "Please add a link", description: "Paste your Zoom/YouTube Live link first." });
+        return;
+      }
+      localStorage.setItem("elaf_live_class", JSON.stringify({
+        id: Date.now().toString(),
+        title: liveTitle || "Live Class",
+        link: liveLink,
+        startTime: new Date().toISOString(),
+        isLive: true,
+      }));
+      setIsLive(true);
+      toast({ title: "You're LIVE! 🟢", description: "Students will see a notification banner on the website." });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -43,6 +76,12 @@ export default function AdminDashboard() {
             </div>
           </Link>
           <div className="flex items-center gap-4">
+            {isLive && (
+              <div className="hidden sm:flex items-center gap-2 bg-destructive/20 rounded-full px-3 py-1.5 animate-pulse">
+                <Radio className="h-3 w-3 text-destructive" />
+                <span className="text-xs text-destructive font-bold">LIVE</span>
+              </div>
+            )}
             <div className="hidden sm:flex items-center gap-2 bg-cream/5 rounded-full px-4 py-1.5">
               <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-sm text-cream/80">{INSTRUCTOR.name}</span>
@@ -56,7 +95,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* Welcome banner with gradient */}
+      {/* Welcome banner */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/8 via-gold/5 to-primary/8" />
         <div className="absolute inset-0 islamic-star opacity-10" />
@@ -74,8 +113,6 @@ export default function AdminDashboard() {
               </p>
             </div>
           </div>
-
-          {/* Quick action pills */}
           {pendingGrading > 0 && (
             <div className="mt-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <button
@@ -98,8 +135,10 @@ export default function AdminDashboard() {
               { value: "overview", icon: BarChart3, label: "Overview" },
               { value: "courses", icon: BookOpen, label: "My Courses" },
               { value: "upload", icon: Upload, label: "Add Content" },
+              { value: "live", icon: Radio, label: "Go Live" },
               { value: "students", icon: Users, label: "Students" },
               { value: "assignments", icon: FileText, label: "Grading" },
+              { value: "guide", icon: HelpCircle, label: "Help Guide" },
             ].map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
                 <tab.icon className="h-4 w-4" /> {tab.label}
@@ -133,7 +172,6 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Recent students */}
             <Card className="border-border/50 overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="font-serif text-xl flex items-center gap-2">
@@ -156,7 +194,7 @@ export default function AdminDashboard() {
                       {sampleStudents.map((s, i) => {
                         const avg = Math.round(Object.values(s.progress).reduce((a, b) => a + b, 0) / Object.values(s.progress).length);
                         return (
-                          <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors duration-200" style={{ animationDelay: `${i * 0.05}s` }}>
+                          <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors duration-200">
                             <td className="p-4">
                               <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
@@ -225,16 +263,13 @@ export default function AdminDashboard() {
                 </div>
                 <h2 className="font-serif text-3xl font-bold text-foreground">Add New Content</h2>
                 <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-                  Create a new course or add lessons to existing courses. It's very simple, Ustadha! ✨
+                  Create a new course or add lessons. It's very simple, Ustadha! ✨
                 </p>
               </div>
-
               <div className="grid gap-5 sm:grid-cols-2 mb-10">
                 <AddCourseDialog />
                 <AddLessonDialog />
               </div>
-
-              {/* Quick guide */}
               <Card className="border-border/50 overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
                   <CardTitle className="font-serif text-lg flex items-center gap-2">
@@ -248,7 +283,7 @@ export default function AdminDashboard() {
                       { step: "2", title: "Record & Upload to YouTube", desc: "Record your lesson, upload it to YouTube", emoji: "🎬" },
                       { step: "3", title: "Paste the Link Here", desc: "Copy your YouTube link and paste it in 'Add Lesson'", emoji: "🔗" },
                       { step: "4", title: "Students Watch & Learn!", desc: "That's it! Students will see your lessons automatically", emoji: "🎓" },
-                    ].map((item, i) => (
+                    ].map((item) => (
                       <div key={item.step} className="flex items-start gap-4 group">
                         <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-lg shrink-0 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
                           {item.emoji}
@@ -257,6 +292,93 @@ export default function AdminDashboard() {
                           <p className="text-sm font-semibold text-foreground">{item.title}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* ===== GO LIVE ===== */}
+          <TabsContent value="live" className="animate-fade-in">
+            <div className="max-w-xl mx-auto">
+              <div className="text-center mb-8">
+                <div className={`h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-5 transition-all duration-500 ${isLive ? "bg-destructive/20 animate-pulse" : "bg-primary/10"}`}>
+                  <Radio className={`h-10 w-10 ${isLive ? "text-destructive" : "text-primary"}`} />
+                </div>
+                <h2 className="font-serif text-3xl font-bold text-foreground">
+                  {isLive ? "You're Live! 🟢" : "Start a Live Class"}
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  {isLive
+                    ? "Students can see a notification banner on the website right now."
+                    : "When you go live, all students will see a notification banner."}
+                </p>
+              </div>
+
+              <Card className="border-border/50 overflow-hidden">
+                <CardContent className="p-6 space-y-5">
+                  <div className="space-y-2">
+                    <Label>Class Title</Label>
+                    <Input
+                      placeholder="e.g., Live Tajweed Practice Session"
+                      value={liveTitle}
+                      onChange={(e) => setLiveTitle(e.target.value)}
+                      disabled={isLive}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Meeting Link (Zoom / YouTube Live / Google Meet) *</Label>
+                    <Input
+                      placeholder="https://zoom.us/j/123456 or YouTube Live link"
+                      value={liveLink}
+                      onChange={(e) => setLiveLink(e.target.value)}
+                      disabled={isLive}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      💡 Paste your Zoom link or YouTube Live link here. Students will click "Join Now" to open it.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={toggleLive}
+                    className={`w-full gap-2 text-base py-6 rounded-xl transition-all duration-500 ${
+                      isLive
+                        ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    }`}
+                  >
+                    <Radio className="h-5 w-5" />
+                    {isLive ? "End Live Class" : "Go Live Now 🎥"}
+                  </Button>
+
+                  {isLive && (
+                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 animate-fade-in">
+                      <p className="text-sm font-medium text-foreground mb-2">✅ Your live class is active!</p>
+                      <p className="text-xs text-muted-foreground">Students visiting the website will see a red banner at the top with a "Join Now" button.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* How live works */}
+              <Card className="border-border/50 mt-6 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-destructive/5 to-transparent">
+                  <CardTitle className="font-serif text-lg">📺 How Live Classes Work</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="space-y-3 text-sm">
+                    {[
+                      { emoji: "1️⃣", text: "Open Zoom or YouTube Live on your device and start your meeting" },
+                      { emoji: "2️⃣", text: "Copy the meeting link from Zoom/YouTube" },
+                      { emoji: "3️⃣", text: "Paste the link above and click 'Go Live Now'" },
+                      { emoji: "4️⃣", text: "Students will see a RED banner on the website — they click 'Join Now'" },
+                      { emoji: "5️⃣", text: "When done, click 'End Live Class' to remove the banner" },
+                    ].map((item) => (
+                      <div key={item.emoji} className="flex items-center gap-3">
+                        <span className="text-lg">{item.emoji}</span>
+                        <span className="text-muted-foreground">{item.text}</span>
                       </div>
                     ))}
                   </div>
@@ -321,9 +443,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="font-serif text-2xl font-bold text-foreground">Grade Student Work</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Review submissions and give grades with feedback ✨
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">Review submissions and give grades with feedback ✨</p>
               </div>
               {pendingGrading > 0 && (
                 <Badge className="bg-gold/10 text-gold border border-gold/20 px-3 py-1.5">
@@ -379,6 +499,100 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* ===== HELP GUIDE ===== */}
+          <TabsContent value="guide" className="animate-fade-in">
+            <div className="max-w-2xl mx-auto">
+              <div className="text-center mb-8">
+                <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-gold/20 to-primary/10 flex items-center justify-center mx-auto mb-5 animate-float">
+                  <HelpCircle className="h-10 w-10 text-gold" />
+                </div>
+                <h2 className="font-serif text-3xl font-bold text-foreground">Portal Management Guide</h2>
+                <p className="text-muted-foreground mt-2">Everything you need to know, step by step 💛</p>
+              </div>
+
+              <div className="space-y-5">
+                {[
+                  {
+                    title: "🔐 How to Login",
+                    steps: [
+                      "Go to the website and click 'Sign In'",
+                      "Enter your email: afshan@elaf.com",
+                      "Enter your password: elaf2024",
+                      "Click 'Sign In' — you'll see this Teacher Panel!"
+                    ]
+                  },
+                  {
+                    title: "📖 How to Add a New Course",
+                    steps: [
+                      "Click the 'Add Content' tab above",
+                      "Click 'New Course'",
+                      "Type the course name (e.g., 'Tajweed for Kids')",
+                      "Add a short description",
+                      "Select the subject and level",
+                      "Click 'Create Course' — Done! ✅"
+                    ]
+                  },
+                  {
+                    title: "🎬 How to Add Video Lessons",
+                    steps: [
+                      "First, record your video and upload it to YouTube",
+                      "Copy the YouTube link (the URL from your browser)",
+                      "Click 'Add Content' tab → 'Add Lesson'",
+                      "Select the course, add a title",
+                      "Paste the YouTube link",
+                      "Click 'Add Lesson' — Students can watch it now! 🎉"
+                    ]
+                  },
+                  {
+                    title: "📺 How to Start a Live Class",
+                    steps: [
+                      "Open Zoom/Google Meet and start a meeting",
+                      "Copy the meeting link",
+                      "Click the 'Go Live' tab above",
+                      "Paste the link and type a class title",
+                      "Click 'Go Live Now' — students see a RED banner!",
+                      "When finished, click 'End Live Class'"
+                    ]
+                  },
+                  {
+                    title: "📝 How to Grade Assignments",
+                    steps: [
+                      "Click the 'Grading' tab above",
+                      "You'll see assignments from students",
+                      "Click 'Grade This' on any submitted work",
+                      "Enter a grade (0-100) and write feedback",
+                      "Click 'Save Grade' — the student will see it! ✨"
+                    ]
+                  },
+                  {
+                    title: "👩‍🎓 How to View Students",
+                    steps: [
+                      "Click the 'Students' tab above",
+                      "You can see all enrolled students",
+                      "View their enrolled courses and progress",
+                    ]
+                  }
+                ].map((section, i) => (
+                  <Card key={i} className="border-border/50 overflow-hidden hover-lift">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="font-serif text-lg">{section.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ol className="space-y-2">
+                        {section.steps.map((step, j) => (
+                          <li key={j} className="flex items-start gap-3 text-sm">
+                            <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{j + 1}</span>
+                            <span className="text-muted-foreground">{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </TabsContent>
         </Tabs>
