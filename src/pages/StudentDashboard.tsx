@@ -7,6 +7,8 @@ import { BookOpen, PlayCircle, Award, CheckCircle, LogOut } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-animations";
 import elafLogo from "@/assets/elaf-logo.png";
 import AssignmentSubmission from "@/components/AssignmentSubmission";
+import LiveClassBanner from "@/components/LiveClassBanner";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const enrolledCourseIds = ["nazra-beginners", "daily-duas", "tajweed-mastery"];
 const courseProgress: Record<string, number> = { "nazra-beginners": 65, "daily-duas": 30, "tajweed-mastery": 10 };
@@ -21,6 +23,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LiveClassBanner />
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-2">
@@ -88,6 +91,7 @@ export default function StudentDashboard() {
           ))}
         </div>
       </div>
+      <WhatsAppButton />
     </div>
   );
 }

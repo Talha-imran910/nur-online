@@ -6,10 +6,13 @@ import FeaturedCourses from "@/components/landing/FeaturedCourses";
 import InstructorSection from "@/components/landing/InstructorSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import CTASection from "@/components/landing/CTASection";
+import WhatsAppButton from "@/components/WhatsAppButton";
+import LiveClassBanner from "@/components/LiveClassBanner";
 
 export default function Index() {
   return (
     <div className="min-h-screen">
+      <LiveClassBanner />
       <Navbar />
       <HeroSection />
       <SubjectsSection />
@@ -18,6 +21,7 @@ export default function Index() {
       <TestimonialsSection />
       <CTASection />
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 }
