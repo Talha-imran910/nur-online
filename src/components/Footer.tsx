@@ -2,10 +2,16 @@ import { Link } from "react-router-dom";
 import elafLogo from "@/assets/elaf-logo.png";
 import islamicDivider from "@/assets/islamic-divider.png";
 
+const SOCIAL_LINKS = [
+  { label: "WhatsApp", emoji: "💬", href: "https://wa.me/923001234567?text=Assalamu%20Alaikum!" },
+  { label: "YouTube", emoji: "📺", href: "https://youtube.com/@elafulquran" },
+  { label: "Facebook", emoji: "📘", href: "https://facebook.com/elafulquran" },
+  { label: "Instagram", emoji: "📸", href: "https://instagram.com/elafulquran" },
+];
+
 export default function Footer() {
   return (
     <footer className="bg-navy text-cream/80 relative overflow-hidden">
-      {/* Decorative divider */}
       <div className="w-full h-8 -mt-1">
         <img src={islamicDivider} alt="" className="w-full h-full object-cover opacity-40" />
       </div>
@@ -23,6 +29,21 @@ export default function Footer() {
             <p className="text-sm text-cream/50 leading-relaxed">
               Spreading the light of the Holy Quran with love, understanding, and spiritual guidance.
             </p>
+            {/* Social links */}
+            <div className="flex gap-3 mt-5">
+              {SOCIAL_LINKS.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-10 w-10 rounded-full bg-cream/5 hover:bg-cream/15 flex items-center justify-center text-lg transition-all duration-300 hover:scale-110"
+                  aria-label={s.label}
+                >
+                  {s.emoji}
+                </a>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -45,12 +66,22 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-serif text-lg text-gold mb-4">Contact</h4>
-            <ul className="space-y-2 text-sm text-cream/60">
-              <li>📧 info@elafulquran.com</li>
-              <li>🌍 Online Classes Worldwide</li>
-              <li>👩‍🏫 Female & Kids Friendly</li>
-              <li>⏰ Flexible Timings</li>
+            <h4 className="font-serif text-lg text-gold mb-4">Contact Us</h4>
+            <ul className="space-y-3 text-sm text-cream/60">
+              <li className="flex items-center gap-2">📧 info@elafulquran.com</li>
+              <li className="flex items-center gap-2">🌍 Online Classes Worldwide</li>
+              <li className="flex items-center gap-2">👩‍🏫 Female & Kids Friendly</li>
+              <li className="flex items-center gap-2">⏰ Flexible Timings</li>
+              <li>
+                <a
+                  href="https://wa.me/923001234567"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-full px-4 py-2 mt-2 text-xs font-medium transition-all duration-300 hover:scale-105"
+                >
+                  💬 Chat on WhatsApp
+                </a>
+              </li>
             </ul>
           </div>
         </div>
