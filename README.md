@@ -6,145 +6,242 @@ An online Quranic education platform by **Ustadha Afshan Imran** — teaching Ta
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- **Node.js** v18+ — [Download](https://nodejs.org)
-- **npm** (comes with Node.js)
-
-### Install & Run
-
 ```bash
 npm install
 npm run dev
 ```
 
-Open **http://localhost:8080** in your browser.
-
----
+Open [http://localhost:5173](http://localhost:5173)
 
 ## 🔐 Teacher Login
 
-| Email | Password |
-|-------|----------|
-| `afshan@elaf.com` | `elaf2024` |
+- **Email:** `afshan@elaf.com`
+- **Password:** `elaf2024`
 
-This gives you access to the **Teacher Panel** where you can:
-- ✅ Add new courses
-- ✅ Add video lessons (paste YouTube links)
-- ✅ Start Live Classes (Zoom/YouTube Live)
-- ✅ Grade student assignments
-- ✅ View all students and their progress
+## 🎓 Features
 
----
-
-## 📺 Live Class Feature
-
-1. Login as teacher
-2. Go to **"Go Live"** tab
-3. Paste your Zoom/Google Meet/YouTube Live link
-4. Click **"Go Live Now"**
-5. Students will see a **red banner** at the top of the website with a "Join Now" button
-6. Click **"End Live Class"** when done
+| Feature | Description |
+|---------|-------------|
+| **Student Portal** | Browse courses, watch lessons, submit assignments |
+| **Teacher Portal** | Add/edit/delete courses, change prices, upload PDFs, grade work, go live |
+| **Live Classes** | Paste Zoom/YouTube link → students see "LIVE NOW" banner |
+| **Grades** | Grade individually, then publish all grades at once |
+| **Remember Me** | Login saves email & password automatically |
+| **Enrollment** | Students provide name, phone number, and email |
+| **PDF Upload** | Teacher can upload PDF notes/worksheets per course |
 
 ---
 
-## 🆓 Free Hosting Options
+## 🗄️ Database Schema (3NF — Third Normal Form)
 
-### Option 1: Vercel (Recommended — Easiest)
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
-3. Click "Import Project" → Select your repo
-4. Click "Deploy" — Done! Your site will be live at `yourproject.vercel.app`
+Run this SQL in Supabase SQL Editor, Neon, or any PostgreSQL database:
 
-### Option 2: Netlify
-1. Go to [netlify.com](https://netlify.com) → Sign up
-2. Drag & drop your `dist` folder (after running `npm run build`)
-3. Your site is live!
+```sql
+-- ============================================
+-- ELAF-UL-QURAN ACADEMY — 3NF DATABASE SCHEMA
+-- ============================================
 
-### Option 3: GitHub Pages (Free)
-1. Run `npm run build`
-2. Push the `dist` folder to a `gh-pages` branch
-3. Enable GitHub Pages in repo settings
+-- 1. SUBJECTS (lookup table)
+CREATE TABLE subjects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL UNIQUE,
+  icon VARCHAR(10),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-### Option 4: Render.com
-1. Go to [render.com](https://render.com) → Create a Static Site
-2. Connect your GitHub repo
-3. Set build command: `npm run build`, publish dir: `dist`
+-- 2. COURSES
+CREATE TABLE courses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+  thumbnail_url TEXT,
+  duration VARCHAR(50),
+  level VARCHAR(20) CHECK (level IN ('Beginner', 'Intermediate', 'Advanced')),
+  is_free BOOLEAN DEFAULT true,
+  price DECIMAL(10,2) DEFAULT 0,
+  rating DECIMAL(2,1) DEFAULT 0,
+  is_published BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
----
+-- 3. UNITS
+CREATE TABLE units (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID REFERENCES courses(id) ON DELETE CASCADE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-## 🛠 Adding a Real Backend (Optional)
+-- 4. LESSONS
+CREATE TABLE lessons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  unit_id UUID REFERENCES units(id) ON DELETE CASCADE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  youtube_url TEXT,
+  pdf_url TEXT,
+  duration VARCHAR(20),
+  has_quiz BOOLEAN DEFAULT false,
+  has_assignment BOOLEAN DEFAULT false,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-The site currently uses mock data. To make it real:
+-- 5. STUDENTS
+CREATE TABLE students (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  phone VARCHAR(20),
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-### Supabase (Free Tier Available)
+-- 6. ENROLLMENTS (many-to-many)
+CREATE TABLE enrollments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE NOT NULL,
+  course_id UUID REFERENCES courses(id) ON DELETE CASCADE NOT NULL,
+  progress INT DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  enrolled_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(student_id, course_id)
+);
 
-1. Go to [supabase.com](https://supabase.com) → Create account & project
-2. Create a `.env` file:
+-- 7. LESSON PROGRESS
+CREATE TABLE lesson_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE NOT NULL,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE NOT NULL,
+  completed BOOLEAN DEFAULT false,
+  completed_at TIMESTAMPTZ,
+  UNIQUE(student_id, lesson_id)
+);
 
-```env
-VITE_SUPABASE_URL=your_url
-VITE_SUPABASE_ANON_KEY=your_key
+-- 8. ASSIGNMENTS
+CREATE TABLE assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  due_date DATE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 9. SUBMISSIONS
+CREATE TABLE submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE NOT NULL,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE NOT NULL,
+  submission_text TEXT,
+  file_url TEXT,
+  grade INT CHECK (grade >= 0 AND grade <= 100),
+  feedback TEXT,
+  is_published BOOLEAN DEFAULT false,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  graded_at TIMESTAMPTZ,
+  UNIQUE(assignment_id, student_id)
+);
+
+-- 10. QUIZZES
+CREATE TABLE quizzes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 11. QUIZ QUESTIONS
+CREATE TABLE quiz_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  quiz_id UUID REFERENCES quizzes(id) ON DELETE CASCADE NOT NULL,
+  question TEXT NOT NULL,
+  options JSONB NOT NULL,
+  correct_answer INT NOT NULL,
+  sort_order INT DEFAULT 0
+);
+
+-- 12. QUIZ ATTEMPTS
+CREATE TABLE quiz_attempts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  quiz_id UUID REFERENCES quizzes(id) ON DELETE CASCADE NOT NULL,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE NOT NULL,
+  score INT NOT NULL,
+  answers JSONB,
+  attempted_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 13. LIVE CLASSES
+CREATE TABLE live_classes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  meeting_link TEXT NOT NULL,
+  is_live BOOLEAN DEFAULT false,
+  started_at TIMESTAMPTZ,
+  ended_at TIMESTAMPTZ
+);
+
+-- INDEXES
+CREATE INDEX idx_enrollments_student ON enrollments(student_id);
+CREATE INDEX idx_enrollments_course ON enrollments(course_id);
+CREATE INDEX idx_submissions_student ON submissions(student_id);
+CREATE INDEX idx_lessons_unit ON lessons(unit_id);
+CREATE INDEX idx_units_course ON units(course_id);
 ```
 
-3. Install: `npm install @supabase/supabase-js`
-4. Run the SQL schema from `BACKEND-SETUP.md` in Supabase SQL Editor
+### 3NF Explanation
 
----
+| Normal Form | Rule | How We Follow It |
+|-------------|------|-----------------|
+| **1NF** | No repeating groups | Each column holds a single value |
+| **2NF** | No partial dependencies | Every non-key depends on full primary key |
+| **3NF** | No transitive dependencies | Subject info in `subjects` table, not in `courses` |
 
-## 📱 WhatsApp Contact
-
-The website has a floating WhatsApp button. To change the phone number:
-- Edit `src/components/WhatsAppButton.tsx` → Update `WHATSAPP_NUMBER`
-- Edit `src/components/Footer.tsx` → Update the WhatsApp links
-
----
-
-## 📁 Project Structure
+### Entity Relationships
 
 ```
-src/
-├── components/          # Reusable UI components
-│   ├── landing/         # Landing page sections
-│   ├── ui/              # shadcn/ui components
-│   ├── Navbar.tsx       # Navigation bar
-│   ├── Footer.tsx       # Footer with social links
-│   ├── WhatsAppButton.tsx  # Floating WhatsApp contact
-│   └── LiveClassBanner.tsx # Live class notification
-├── pages/               # Route pages
-│   ├── Index.tsx         # Landing page
-│   ├── Courses.tsx       # All courses
-│   ├── CourseDetail.tsx  # Single course view
-│   ├── CoursePlayer.tsx  # Video player
-│   ├── AdminDashboard.tsx # Teacher panel
-│   ├── StudentDashboard.tsx # Student portal
-│   ├── Login.tsx         # Login page
-│   └── Register.tsx      # Registration
-├── lib/
-│   └── mock-data.ts     # Sample data (replace with DB later)
-└── hooks/               # Custom React hooks
+subjects ──< courses ──< units ──< lessons ──< assignments ──< submissions
+                │                    │                              │
+                │                    ├──< quizzes ──< quiz_questions│
+                │                    │         └──< quiz_attempts   │
+                │                    └──< lesson_progress           │
+                │                              │                    │
+                └──< enrollments >──┘          └────── students ────┘
 ```
 
 ---
 
-## 🏗 Build for Production
+## 🌐 Free Hosting
 
-```bash
-npm run build
-```
+### Frontend (pick one)
 
-This creates a `dist` folder ready for deployment.
+| Provider | How |
+|----------|-----|
+| **[Vercel](https://vercel.com)** (recommended) | Connect GitHub → auto-detects Vite → Deploy |
+| **[Netlify](https://netlify.com)** | Build: `npm run build`, Publish: `dist` |
+| **[Cloudflare Pages](https://pages.cloudflare.com)** | Same as Netlify, free unlimited bandwidth |
+| **GitHub Pages** | `npm i -D gh-pages` → `npm run build && gh-pages -d dist` |
+
+### Database (pick one)
+
+| Provider | Free Tier |
+|----------|-----------|
+| **[Supabase](https://supabase.com)** (recommended) | 500MB DB, 1GB storage, auth built-in |
+| **[Neon](https://neon.tech)** | 512MB PostgreSQL, serverless |
+| **[Railway](https://railway.app)** | $5/mo credit |
+
+### Supabase Setup
+1. Create account → New project
+2. SQL Editor → paste schema above → Run
+3. Settings → API → copy URL + anon key
+4. Update your app config
 
 ---
 
-## ❓ Troubleshooting
+## 📞 Update Contact Info
 
-| Problem | Solution |
-|---------|----------|
-| "Module not found" | Run `npm install` |
-| Port already in use | Change port in `vite.config.ts` |
-| Blank page | Check browser console (F12) |
-| WhatsApp not working | Update phone number in `WhatsAppButton.tsx` |
+- WhatsApp number: `src/components/WhatsAppButton.tsx` line 3
+- Social links: `src/components/Footer.tsx`
 
----
-
-JazakAllahu Khairan! 🤲
+Built with ❤️ for Elaf-ul-Quran Academy
