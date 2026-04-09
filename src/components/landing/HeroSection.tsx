@@ -25,7 +25,7 @@ export default function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 py-20">
+      <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="max-w-3xl">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6 animate-fade-in">
