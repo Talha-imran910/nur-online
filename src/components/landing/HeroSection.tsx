@@ -9,7 +9,7 @@ export default function HeroSection() {
   const statsRef = useScrollReveal(0.3);
 
   return (
-    <section className="relative min-h-[92vh] flex items-center overflow-hidden islamic-overlay">
+    <section className="relative min-h-[75vh] flex items-center overflow-hidden islamic-overlay">
       {/* Background */}
       <div className="absolute inset-0 z-0">
         <img src={heroMosque} alt="" className="w-full h-full object-cover" width={1920} height={1080} />
