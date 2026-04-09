@@ -61,7 +61,7 @@ export default function HeroSection() {
           </div>
 
           {/* Stats */}
-          <div className="mt-10 grid grid-cols-4 gap-6 max-w-lg animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          <div className="mt-4 grid grid-cols-4 gap-6 max-w-lg animate-fade-in" style={{ animationDelay: "0.4s" }}>
             <StatItem icon={BookOpen} label="Courses" end={5} suffix="+" />
             <StatItem icon={Users} label="Students" end={500} suffix="+" />
             <StatItem icon={Star} label="Rating" staticValue="4.9★" />
@@ -72,8 +72,8 @@ export default function HeroSection() {
 
       {/* Bottom curve */}
       <div className="absolute bottom-0 left-0 right-0 z-10">
-        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-          <path d="M0 120L1440 120L1440 50C1440 50 1080 0 720 0C360 0 0 50 0 50L0 120Z" fill="hsl(var(--background))" />
+        <svg viewBox="0 0 1440 52" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+          <path d="M0 52L1440 52L1440 20C1440 20 1080 0 720 0C360 0 0 20 0 20L0 52Z" fill="hsl(var(--background))" />
         </svg>
       </div>
     </section>
