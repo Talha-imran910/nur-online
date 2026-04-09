@@ -61,7 +61,7 @@ export default function HeroSection() {
           </div>
 
           {/* Stats */}
-          <div ref={statsRef} className="reveal mt-14 grid grid-cols-4 gap-6 max-w-lg">
+          <div className="mt-10 grid grid-cols-4 gap-6 max-w-lg animate-fade-in" style={{ animationDelay: "0.4s" }}>
             <StatItem icon={BookOpen} label="Courses" end={5} suffix="+" />
             <StatItem icon={Users} label="Students" end={500} suffix="+" />
             <StatItem icon={Star} label="Rating" staticValue="4.9★" />
