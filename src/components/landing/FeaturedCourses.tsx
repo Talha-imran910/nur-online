@@ -9,7 +9,7 @@ export default function FeaturedCourses() {
   const titleRef = useScrollReveal();
   const gridRef = useScrollReveal(0.1);
 
-  const featured = courses.slice(0, 3);
+  const featured = getCourses().slice(0, 3);
 
   return (
     <section className="py-20 bg-secondary/30 islamic-overlay relative">
