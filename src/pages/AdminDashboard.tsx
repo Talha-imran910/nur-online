@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { courses as initialCourses, sampleStudents, sampleAssignments, INSTRUCTOR, Course } from "@/lib/mock-data";
+import { Course, INSTRUCTOR } from "@/lib/mock-data";
+import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,44 +28,61 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const statsRef = useScrollReveal();
   const { toast } = useToast();
+  const [, setTick] = useState(0);
 
-  // Editable course list
-  const [courseList, setCourseList] = useState<Course[]>([...initialCourses]);
-  const totalStudents = sampleStudents.length;
+  // Re-render on store changes
+  useEffect(() => {
+    return onStoreUpdate(() => setTick((t) => t + 1));
+  }, []);
+
+  // Read from store
+  const courseList = getCourses();
+  const students = getStudents();
+  const assignments = getAssignments();
+
+  const totalStudents = students.length;
   const totalLessons = courseList.reduce((acc, c) => acc + c.lessons, 0);
 
   // Grading state
-  const [assignments, setAssignments] = useState([...sampleAssignments]);
   const [gradesPublished, setGradesPublished] = useState(false);
   const pendingGrading = assignments.filter((a) => a.submitted && !a.grade).length;
 
   // Live class state
-  const [isLive, setIsLive] = useState(() => {
-    try { const d = localStorage.getItem("elaf_live_class"); return d ? JSON.parse(d).isLive : false; } catch { return false; }
-  });
+  const [isLive, setIsLive] = useState(() => !!getLiveClass());
   const [liveTitle, setLiveTitle] = useState("Live Tajweed Class");
   const [liveLink, setLiveLink] = useState("");
+  const [liveCourseId, setLiveCourseId] = useState("all"); // "all" or specific course id
 
   const toggleLive = () => {
     if (isLive) {
-      localStorage.removeItem("elaf_live_class");
+      setLiveClassStore(null);
       setIsLive(false);
       toast({ title: "Live Class Ended 🔴", description: "Students will no longer see the live banner." });
     } else {
       if (!liveLink.trim()) { toast({ title: "Please add a link", description: "Paste your Zoom/YouTube Live link first." }); return; }
-      localStorage.setItem("elaf_live_class", JSON.stringify({ id: Date.now().toString(), title: liveTitle || "Live Class", link: liveLink, startTime: new Date().toISOString(), isLive: true }));
+      setLiveClassStore({
+        id: Date.now().toString(),
+        title: liveTitle || "Live Class",
+        link: liveLink,
+        startTime: new Date().toISOString(),
+        isLive: true,
+        courseId: liveCourseId === "all" ? undefined : liveCourseId,
+      });
       setIsLive(true);
-      toast({ title: "You're LIVE! 🟢", description: "Students will see a notification banner on the website." });
+      const targetLabel = liveCourseId === "all" ? "all students" : courseList.find((c) => c.id === liveCourseId)?.title || "selected course";
+      toast({ title: "You're LIVE! 🟢", description: `Notification sent to ${targetLabel}.` });
     }
   };
 
-  const deleteCourse = (id: string) => {
-    setCourseList((prev) => prev.filter((c) => c.id !== id));
+  const handleDeleteCourse = (id: string) => {
+    const updated = courseList.filter((c) => c.id !== id);
+    saveCourses(updated);
     toast({ title: "Course Deleted 🗑️", description: "The course has been removed." });
   };
 
-  const updateCoursePrice = (id: string, price: number, isFree: boolean) => {
-    setCourseList((prev) => prev.map((c) => c.id === id ? { ...c, price, isFree } : c));
+  const handleUpdateCoursePrice = (id: string, price: number, isFree: boolean) => {
+    const updated = courseList.map((c) => c.id === id ? { ...c, price, isFree } : c);
+    saveCourses(updated);
     toast({ title: "Price Updated 💰", description: isFree ? "Course set to Free." : `Price set to $${price}.` });
   };
 
@@ -74,7 +92,8 @@ export default function AdminDashboard() {
   };
 
   const updateGrade = (assignmentId: string, grade: number, feedback: string) => {
-    setAssignments((prev) => prev.map((a) => a.id === assignmentId ? { ...a, grade, feedback } : a));
+    const updated = assignments.map((a) => a.id === assignmentId ? { ...a, grade, feedback } : a);
+    saveAssignments(updated);
     toast({ title: "Grade Saved! ✅", description: `Grade: ${grade}%` });
   };
 
@@ -190,8 +209,9 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sampleStudents.map((s) => {
-                        const avg = Math.round(Object.values(s.progress).reduce((a, b) => a + b, 0) / Object.values(s.progress).length);
+                      {students.map((s) => {
+                        const vals = Object.values(s.progress);
+                        const avg = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
                         return (
                           <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                             <td className="p-4">
@@ -218,7 +238,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* ===== COURSES (with delete, edit price) ===== */}
+          {/* ===== COURSES ===== */}
           <TabsContent value="courses" className="animate-fade-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-2xl font-bold text-foreground">Your Courses</h2>
@@ -227,7 +247,7 @@ export default function AdminDashboard() {
               </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {courseList.map((c, i) => (
+              {courseList.map((c) => (
                 <Card key={c.id} className="border-border/50 hover-lift group overflow-hidden">
                   <div className="p-5">
                     <div className="flex gap-4">
@@ -245,8 +265,8 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
-                      <EditPriceDialog course={c} onSave={(price, isFree) => updateCoursePrice(c.id, price, isFree)} />
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-lg" onClick={() => deleteCourse(c.id)}>
+                      <EditPriceDialog course={c} onSave={(price, isFree) => handleUpdateCoursePrice(c.id, price, isFree)} />
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-lg" onClick={() => handleDeleteCourse(c.id)}>
                         <Trash2 className="h-3 w-3" /> Delete
                       </Button>
                     </div>
@@ -256,7 +276,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ===== ADD CONTENT (with PDF upload) ===== */}
+          {/* ===== ADD CONTENT ===== */}
           <TabsContent value="upload" className="animate-fade-in">
             <div className="max-w-2xl mx-auto">
               <div className="text-center mb-8">
@@ -271,33 +291,10 @@ export default function AdminDashboard() {
                 <AddLessonDialog courses={courseList} />
                 <UploadPDFDialog courses={courseList} />
               </div>
-              <Card className="border-border/50 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-                  <CardTitle className="font-serif text-lg">📋 How It Works</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="space-y-3">
-                    {[
-                      { step: "1", title: "Create a Course", desc: "Give it a name and set the price", emoji: "📖" },
-                      { step: "2", title: "Upload Video to YouTube", desc: "Record and upload to YouTube", emoji: "🎬" },
-                      { step: "3", title: "Add Lesson or PDF", desc: "Paste YouTube link or upload PDF notes", emoji: "📄" },
-                      { step: "4", title: "Students Learn!", desc: "Students watch videos & download PDFs", emoji: "🎓" },
-                    ].map((item) => (
-                      <div key={item.step} className="flex items-start gap-4 group">
-                        <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-all duration-300">{item.emoji}</div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                          <p className="text-xs text-muted-foreground">{item.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
-          {/* ===== GO LIVE ===== */}
+          {/* ===== GO LIVE (with course targeting) ===== */}
           <TabsContent value="live" className="animate-fade-in">
             <div className="max-w-xl mx-auto">
               <div className="text-center mb-8">
@@ -305,7 +302,7 @@ export default function AdminDashboard() {
                   <Radio className={`h-10 w-10 ${isLive ? "text-destructive" : "text-primary"}`} />
                 </div>
                 <h2 className="font-serif text-3xl font-bold text-foreground">{isLive ? "You're Live! 🟢" : "Start a Live Class"}</h2>
-                <p className="text-muted-foreground mt-2">{isLive ? "Students can see the banner now." : "All students will see a notification banner."}</p>
+                <p className="text-muted-foreground mt-2">{isLive ? "Students can see the banner now." : "Notify students about your live session."}</p>
               </div>
               <Card className="border-border/50 overflow-hidden">
                 <CardContent className="p-6 space-y-5">
@@ -317,6 +314,23 @@ export default function AdminDashboard() {
                     <Label>Meeting Link (Zoom / YouTube Live) *</Label>
                     <Input placeholder="https://zoom.us/j/123456" value={liveLink} onChange={(e) => setLiveLink(e.target.value)} disabled={isLive} />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Notify Students Of</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={liveCourseId}
+                      onChange={(e) => setLiveCourseId(e.target.value)}
+                      disabled={isLive}
+                    >
+                      <option value="all">📢 All Students (Global)</option>
+                      {courseList.map((c) => (
+                        <option key={c.id} value={c.id}>📖 {c.title}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      {liveCourseId === "all" ? "Banner will show to everyone on the website." : "Banner will only show to students enrolled in this course."}
+                    </p>
+                  </div>
                   <Button onClick={toggleLive} className={`w-full gap-2 text-base py-6 rounded-xl transition-all duration-500 ${isLive ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}>
                     <Radio className="h-5 w-5" />
                     {isLive ? "End Live Class" : "Go Live Now 🎥"}
@@ -326,7 +340,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ===== STUDENTS (with marks) ===== */}
+          {/* ===== STUDENTS ===== */}
           <TabsContent value="students" className="animate-fade-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-2xl font-bold text-foreground">All Students</h2>
@@ -342,15 +356,16 @@ export default function AdminDashboard() {
                         <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
                         <th className="text-left p-4 font-medium text-muted-foreground">Courses</th>
                         <th className="text-left p-4 font-medium text-muted-foreground">Avg Progress</th>
-                        <th className="text-left p-4 font-medium text-muted-foreground">Grades</th>
                         <th className="text-left p-4 font-medium text-muted-foreground">Joined</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sampleStudents.map((s) => {
-                        const avg = Math.round(Object.values(s.progress).reduce((a, b) => a + b, 0) / Object.values(s.progress).length);
-                        const studentAssignments = assignments.filter((a) => a.grade);
-                        const avgGrade = studentAssignments.length > 0 ? Math.round(studentAssignments.reduce((acc, a) => acc + (a.grade || 0), 0) / studentAssignments.length) : null;
+                      {students.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No students registered yet.</td></tr>
+                      )}
+                      {students.map((s) => {
+                        const vals = Object.values(s.progress);
+                        const avg = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
                         return (
                           <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                             <td className="p-4">
@@ -360,21 +375,19 @@ export default function AdminDashboard() {
                               </div>
                             </td>
                             <td className="p-4 text-muted-foreground text-xs">{s.email}</td>
-                            <td className="p-4"><Badge variant="secondary" className="text-xs">{s.enrolledCourses.length}</Badge></td>
+                            <td className="p-4">
+                              <div className="flex flex-wrap gap-1">
+                                {s.enrolledCourses.map((cid) => {
+                                  const course = courseList.find((c) => c.id === cid);
+                                  return course ? <Badge key={cid} variant="secondary" className="text-[10px]">{course.title.slice(0, 20)}</Badge> : null;
+                                })}
+                              </div>
+                            </td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
                                 <Progress value={avg} className="h-2 w-20" />
                                 <span className="text-xs font-semibold">{avg}%</span>
                               </div>
-                            </td>
-                            <td className="p-4">
-                              {avgGrade ? (
-                                <Badge className={`text-xs ${avgGrade >= 80 ? "bg-primary/10 text-primary" : avgGrade >= 60 ? "bg-gold/10 text-gold" : "bg-destructive/10 text-destructive"}`}>
-                                  {avgGrade}%
-                                </Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
                             </td>
                             <td className="p-4 text-muted-foreground text-xs">{s.joinedDate}</td>
                           </tr>
@@ -387,7 +400,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* ===== GRADES (bulk publish) ===== */}
+          {/* ===== GRADES ===== */}
           <TabsContent value="grades" className="animate-fade-in">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <div>
@@ -413,7 +426,7 @@ export default function AdminDashboard() {
             )}
 
             <div className="space-y-4">
-              {assignments.map((a, i) => (
+              {assignments.map((a) => (
                 <Card key={a.id} className="border-border/50 hover-lift overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -500,16 +513,6 @@ export default function AdminDashboard() {
                   </Button>
                 </CardContent>
               </Card>
-
-              <Card className="border-border/50 overflow-hidden">
-                <CardHeader><CardTitle className="font-serif text-lg flex items-center gap-2"><DollarSign className="h-5 w-5 text-gold" /> Bulk Price Update</CardTitle></CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">Quickly update prices from the Courses tab. Click "Edit Price" on any course.</p>
-                  <Button variant="outline" onClick={() => setActiveTab("courses")} className="gap-2 rounded-xl">
-                    <BookOpen className="h-4 w-4" /> Go to Courses
-                  </Button>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
@@ -530,7 +533,7 @@ export default function AdminDashboard() {
                   { title: "🎬 Add Video", steps: ["Upload video to YouTube", "Copy the YouTube link", "Click 'Add Lesson'", "Paste link and save"] },
                   { title: "📄 Upload PDF", steps: ["Click 'Add Content' tab", "Click 'Upload PDF'", "Select PDF file from your device", "Choose which course it belongs to"] },
                   { title: "💰 Change Price", steps: ["Go to 'Courses' tab", "Click 'Edit Price' on any course", "Enter new price or toggle Free", "Click Save"] },
-                  { title: "📺 Go Live", steps: ["Start Zoom/Google Meet", "Copy meeting link", "Go to 'Go Live' tab", "Paste link → 'Go Live Now'", "Click 'End' when done"] },
+                  { title: "📺 Go Live", steps: ["Start Zoom/Google Meet", "Copy meeting link", "Go to 'Go Live' tab", "Choose which course to notify", "Paste link → 'Go Live Now'", "Click 'End' when done"] },
                   { title: "📝 Grade Work", steps: ["Go to 'Grades' tab", "Click 'Grade' on any submission", "Enter grade (0-100) and feedback", "When all done → 'Publish All Grades'"] },
                   { title: "🗑️ Delete Course", steps: ["Go to 'Courses' tab", "Click 'Delete' on any course", "Course is removed immediately"] },
                 ].map((section, i) => (
@@ -597,7 +600,39 @@ function EditPriceDialog({ course, onSave }: { course: Course; onSave: (price: n
 function AddCourseDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const handleSave = (e: React.FormEvent) => { e.preventDefault(); toast({ title: "Course Created! ✅" }); setOpen(false); };
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [subject, setSubject] = useState("tajweed");
+  const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
+  const [price, setPrice] = useState("0");
+  const [duration, setDuration] = useState("");
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    const priceNum = Number(price);
+    const newCourse: Course = {
+      id: `course-${Date.now()}`,
+      title,
+      description,
+      subject,
+      thumbnail: "/placeholder.svg",
+      instructor: INSTRUCTOR.name,
+      duration: duration || "TBD",
+      lessons: 0,
+      students: 0,
+      level,
+      isFree: priceNum === 0,
+      price: priceNum,
+      rating: 0,
+      units: [],
+    };
+    const courses = getCourses();
+    courses.push(newCourse);
+    saveCourses(courses);
+    toast({ title: "Course Created! ✅", description: `"${title}" is now live.` });
+    setOpen(false);
+    setTitle(""); setDescription(""); setPrice("0"); setDuration("");
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -613,25 +648,25 @@ function AddCourseDialog() {
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle className="font-serif text-xl">Create New Course ✨</DialogTitle></DialogHeader>
         <form onSubmit={handleSave} className="space-y-4 mt-2">
-          <div className="space-y-2"><Label>Course Name *</Label><Input placeholder="e.g., Tajweed Basics" required /></div>
-          <div className="space-y-2"><Label>Description</Label><Textarea placeholder="What will students learn?" rows={3} /></div>
+          <div className="space-y-2"><Label>Course Name *</Label><Input placeholder="e.g., Tajweed Basics" value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea placeholder="What will students learn?" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Subject</Label>
-              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option>Tajweed</option><option>Tafseer</option><option>Nazra Quran</option><option>Qaida & Basics</option><option>Memorization</option><option>Spiritual Tarbiyat</option>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={subject} onChange={(e) => setSubject(e.target.value)}>
+                <option value="tajweed">Tajweed</option><option value="tafseer">Tafseer</option><option value="nazra">Nazra Quran</option><option value="qaida">Qaida & Basics</option><option value="memorization">Memorization</option><option value="tarbiyat">Spiritual Tarbiyat</option>
               </select>
             </div>
             <div className="space-y-2">
               <Label>Level</Label>
-              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={level} onChange={(e) => setLevel(e.target.value as any)}>
                 <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
               </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Price (USD)</Label><Input type="number" min="0" placeholder="0 = Free" /></div>
-            <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 12 weeks" /></div>
+            <div className="space-y-2"><Label>Price (USD)</Label><Input type="number" min="0" placeholder="0 = Free" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 12 weeks" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
           </div>
           <div className="flex gap-2 pt-2">
             <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
@@ -647,7 +682,28 @@ function AddCourseDialog() {
 function AddLessonDialog({ courses }: { courses: Course[] }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const handleSave = (e: React.FormEvent) => { e.preventDefault(); toast({ title: "Lesson Added! ✅" }); setOpen(false); };
+  const [courseId, setCourseId] = useState("");
+  const [title, setTitle] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [duration, setDuration] = useState("");
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!courseId) { toast({ title: "Please select a course" }); return; }
+    const course = courses.find((c) => c.id === courseId);
+    const unitId = course?.units[0]?.id || `unit-${Date.now()}`;
+
+    addLessonToCourse(courseId, unitId, {
+      id: `lesson-${Date.now()}`,
+      title,
+      youtubeUrl,
+      duration: duration || "TBD",
+    });
+
+    toast({ title: "Lesson Added! ✅", description: `"${title}" added to ${course?.title}.` });
+    setOpen(false);
+    setTitle(""); setYoutubeUrl(""); setDuration(""); setCourseId("");
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -665,20 +721,20 @@ function AddLessonDialog({ courses }: { courses: Course[] }) {
         <form onSubmit={handleSave} className="space-y-4 mt-2">
           <div className="space-y-2">
             <Label>Which Course? *</Label>
-            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={courseId} onChange={(e) => setCourseId(e.target.value)} required>
               <option value="">Select a course...</option>
               {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </div>
-          <div className="space-y-2"><Label>Lesson Title *</Label><Input placeholder="e.g., Noon Sakinah Rules" required /></div>
+          <div className="space-y-2"><Label>Lesson Title *</Label><Input placeholder="e.g., Noon Sakinah Rules" value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
           <div className="space-y-2">
             <Label>YouTube Video Link *</Label>
             <div className="flex items-center gap-2">
               <Video className="h-5 w-5 text-destructive shrink-0" />
-              <Input placeholder="https://youtube.com/watch?v=..." required />
+              <Input placeholder="https://youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} required />
             </div>
           </div>
-          <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 25 minutes" /></div>
+          <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 25 minutes" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
           <div className="flex gap-2 pt-2">
             <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
             <Button type="submit" variant="emerald" className="flex-1"><Save className="h-4 w-4 mr-1" /> Add Lesson</Button>

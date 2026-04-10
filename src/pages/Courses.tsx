@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
-import { courses, subjects } from "@/lib/mock-data";
+import { subjects } from "@/lib/mock-data";
+import { getCourses, onStoreUpdate } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -13,15 +14,19 @@ import { ArabicQuote } from "@/components/IslamicDecorations";
 export default function Courses() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [, setTick] = useState(0);
   const activeSubject = searchParams.get("subject") || "all";
   const gridRef = useScrollReveal(0.1);
 
+  useEffect(() => onStoreUpdate(() => setTick((t) => t + 1)), []);
+
+  const courses = getCourses();
   const filtered = useMemo(() => {
     let result = courses;
     if (activeSubject !== "all") result = result.filter((c) => c.subject === activeSubject);
     if (search) result = result.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()));
     return result;
-  }, [activeSubject, search]);
+  }, [activeSubject, search, courses]);
 
   return (
     <div className="min-h-screen flex flex-col">

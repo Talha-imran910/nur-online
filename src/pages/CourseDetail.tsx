@@ -1,7 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { courses, subjects, INSTRUCTOR } from "@/lib/mock-data";
+import { subjects, INSTRUCTOR } from "@/lib/mock-data";
+import { getCourses } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
@@ -11,7 +12,7 @@ import { IslamicDivider, ArabicQuote } from "@/components/IslamicDecorations";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
-  const course = courses.find((c) => c.id === courseId);
+  const course = getCourses().find((c) => c.id === courseId);
   const [openUnits, setOpenUnits] = useState<string[]>(course?.units.map((u) => u.id) || []);
   const currRef = useScrollReveal(0.1);
   const instrRef = useScrollReveal();

@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
-import { courses, sampleQuiz } from "@/lib/mock-data";
+import { sampleQuiz } from "@/lib/mock-data";
+import { getCourses } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +9,7 @@ import { CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle, ArrowLe
 
 export default function CoursePlayer() {
   const { courseId } = useParams();
-  const course = courses.find((c) => c.id === courseId);
+  const course = getCourses().find((c) => c.id === courseId);
   const [currentLessonId, setCurrentLessonId] = useState(course?.units[0]?.lessons[0]?.id || "");
   const [completedLessons, setCompletedLessons] = useState<string[]>(
     course?.units[0]?.lessons.slice(0, 2).map((l) => l.id) || []
