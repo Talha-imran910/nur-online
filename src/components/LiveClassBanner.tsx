@@ -1,38 +1,31 @@
 import { useState, useEffect } from "react";
 import { Radio, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getLiveClass, onStoreUpdate, type LiveClass } from "@/lib/store";
 
-interface LiveClass {
-  id: string;
-  title: string;
-  link: string;
-  startTime: string;
-  isLive: boolean;
+interface LiveClassBannerProps {
+  courseId?: string; // If provided, only show banner for this course
 }
 
-// In a real app this would come from DB. For now, check localStorage.
-function getLiveClass(): LiveClass | null {
-  try {
-    const data = localStorage.getItem("elaf_live_class");
-    if (!data) return null;
-    const parsed = JSON.parse(data);
-    if (parsed.isLive) return parsed;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-export default function LiveClassBanner() {
+export default function LiveClassBanner({ courseId }: LiveClassBannerProps) {
   const [liveClass, setLiveClass] = useState<LiveClass | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const check = () => setLiveClass(getLiveClass());
+    const check = () => {
+      const live = getLiveClass();
+      // If courseId filter is set, only show if live class targets that course or all courses
+      if (live && courseId && live.courseId && live.courseId !== courseId) {
+        setLiveClass(null);
+      } else {
+        setLiveClass(live);
+      }
+    };
     check();
-    const interval = setInterval(check, 5000); // poll every 5s
-    return () => clearInterval(interval);
-  }, []);
+    const unsub = onStoreUpdate(check);
+    const interval = setInterval(check, 5000);
+    return () => { unsub(); clearInterval(interval); };
+  }, [courseId]);
 
   if (!liveClass || dismissed) return null;
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import elafLogo from "@/assets/elaf-logo.png";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { addStudent, getStudents, getCourses } from "@/lib/store";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -21,7 +22,29 @@ export default function Register() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Check if student already exists
+    const existing = getStudents().find((s) => s.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      toast({ title: "Account already exists", description: "Try signing in instead.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    // Get free courses to auto-enroll
+    const freeCourses = getCourses().filter((c) => c.isFree).map((c) => c.id);
+
     setTimeout(() => {
+      // Add student to the shared store
+      addStudent({
+        id: `s-${Date.now()}`,
+        name,
+        email,
+        enrolledCourses: freeCourses,
+        progress: Object.fromEntries(freeCourses.map((id) => [id, 0])),
+        joinedDate: new Date().toISOString().split("T")[0],
+      });
+
       localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email, name, phone }));
       toast({ title: "Account Created! 🎉", description: "Welcome to Elaf-ul-Quran Academy." });
       navigate("/dashboard");
