@@ -1,4 +1,4 @@
-import { courses } from "@/lib/mock-data";
+import { getCourses } from "@/lib/store";
 import CourseCard from "@/components/CourseCard";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
