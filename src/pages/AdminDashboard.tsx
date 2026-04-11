@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Course, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse } from "@/lib/store";
+import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
