@@ -28,7 +28,7 @@ export default function CoursePlayer() {
   const progressPercent = (completedLessons.length / totalLessons) * 100;
 
   const getYouTubeId = (url: string) => {
-    const match = url.match(/(?:v=|\/)([\w-]{11})/);
+    const match = url.match(/(?:v=|\/|youtu\.be\/)([\w-]{11})/);
     return match ? match[1] : "";
   };
 
@@ -71,11 +71,12 @@ export default function CoursePlayer() {
           {currentLesson && !showQuiz && (
             <div className="aspect-video w-full bg-black">
               <iframe
-                src={`https://www.youtube.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}`}
+                src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}?rel=0&modestbranding=1&disablekb=0`}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 title={currentLesson.title}
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             </div>
           )}

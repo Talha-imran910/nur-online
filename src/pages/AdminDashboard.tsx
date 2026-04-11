@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Course, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse } from "@/lib/store";
+import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -606,6 +606,16 @@ function AddCourseDialog() {
   const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [price, setPrice] = useState("0");
   const [duration, setDuration] = useState("");
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
+
+  const handleThumbnail = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setThumbnailPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -615,7 +625,7 @@ function AddCourseDialog() {
       title,
       description,
       subject,
-      thumbnail: "/placeholder.svg",
+      thumbnail: thumbnailPreview || "/placeholder.svg",
       instructor: INSTRUCTOR.name,
       duration: duration || "TBD",
       lessons: 0,
@@ -631,7 +641,7 @@ function AddCourseDialog() {
     saveCourses(courses);
     toast({ title: "Course Created! ✅", description: `"${title}" is now live.` });
     setOpen(false);
-    setTitle(""); setDescription(""); setPrice("0"); setDuration("");
+    setTitle(""); setDescription(""); setPrice("0"); setDuration(""); setThumbnailPreview("");
   };
 
   return (
@@ -645,11 +655,25 @@ function AddCourseDialog() {
           <p className="text-xs text-muted-foreground mt-1">Create a course</p>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-serif text-xl">Create New Course ✨</DialogTitle></DialogHeader>
         <form onSubmit={handleSave} className="space-y-4 mt-2">
           <div className="space-y-2"><Label>Course Name *</Label><Input placeholder="e.g., Tajweed Basics" value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea placeholder="What will students learn?" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label>Thumbnail Image</Label>
+            <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
+              {thumbnailPreview ? (
+                <img src={thumbnailPreview} alt="Preview" className="h-24 w-full object-cover rounded-lg" />
+              ) : (
+                <>
+                  <Image className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Click to upload thumbnail</p>
+                </>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handleThumbnail} />
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Subject</Label>
@@ -844,6 +868,57 @@ function GradeDialog({ assignment, onSave }: { assignment: any; onSave: (grade: 
           <div className="flex gap-2 pt-2">
             <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
             <Button type="submit" variant="emerald" className="flex-1"><CheckCircle2 className="h-4 w-4 mr-1" /> Save Grade</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ========== ASSIGN COURSE DIALOG ========== */
+function AssignCourseDialog({ students, courses }: { students: import("@/lib/mock-data").Student[]; courses: Course[] }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [studentEmail, setStudentEmail] = useState("");
+  const [courseId, setCourseId] = useState("");
+
+  const handleAssign = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentEmail || !courseId) return;
+    enrollStudent(studentEmail, courseId);
+    const courseName = courses.find((c) => c.id === courseId)?.title || "Course";
+    const studentName = students.find((s) => s.email === studentEmail)?.name || studentEmail;
+    toast({ title: "Course Assigned! ✅", description: `"${courseName}" assigned to ${studentName}.` });
+    setOpen(false);
+    setStudentEmail("");
+    setCourseId("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="emerald" size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Assign Course</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle className="font-serif text-lg">Assign Course to Student</DialogTitle></DialogHeader>
+        <form onSubmit={handleAssign} className="space-y-4 mt-2">
+          <div className="space-y-2">
+            <Label>Student *</Label>
+            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={studentEmail} onChange={(e) => setStudentEmail(e.target.value)} required>
+              <option value="">Select a student...</option>
+              {students.map((s) => <option key={s.id} value={s.email}>{s.name} ({s.email})</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label>Course *</Label>
+            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={courseId} onChange={(e) => setCourseId(e.target.value)} required>
+              <option value="">Select a course...</option>
+              {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
+            <Button type="submit" variant="emerald" className="flex-1"><GraduationCap className="h-4 w-4 mr-1" /> Assign</Button>
           </div>
         </form>
       </DialogContent>

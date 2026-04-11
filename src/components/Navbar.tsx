@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import elafLogo from "@/assets/elaf-logo.png";
 
@@ -15,11 +15,21 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
+  // Check if user is logged in
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("elaf_user") || "null"); } catch { return null; }
+  }, [location.pathname]); // re-check on route change
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("elaf_user");
+    window.location.href = "/";
+  };
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-500 ${
@@ -55,12 +65,25 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link to="/login">
-            <Button variant="ghost" size="sm">Sign In</Button>
-          </Link>
-          <Link to="/register">
-            <Button variant="emerald" size="sm" className="animate-pulse-glow">Get Started</Button>
-          </Link>
+          {currentUser ? (
+            <>
+              <Link to={currentUser.role === "teacher" ? "/admin" : "/dashboard"}>
+                <Button variant="ghost" size="sm">My Dashboard</Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
+                <LogOut className="h-3.5 w-3.5" /> Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" size="sm">Sign In</Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="emerald" size="sm" className="animate-pulse-glow">Get Started</Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <button className="md:hidden p-2" onClick={() => setOpen(!open)}>
@@ -78,12 +101,25 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="flex gap-2 mt-3">
-            <Link to="/login" className="flex-1">
-              <Button variant="outline" className="w-full" size="sm">Sign In</Button>
-            </Link>
-            <Link to="/register" className="flex-1">
-              <Button variant="emerald" className="w-full" size="sm">Get Started</Button>
-            </Link>
+            {currentUser ? (
+              <>
+                <Link to={currentUser.role === "teacher" ? "/admin" : "/dashboard"} className="flex-1">
+                  <Button variant="outline" className="w-full" size="sm" onClick={() => setOpen(false)}>Dashboard</Button>
+                </Link>
+                <Button variant="ghost" className="flex-1" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-3.5 w-3.5 mr-1" /> Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="flex-1">
+                  <Button variant="outline" className="w-full" size="sm">Sign In</Button>
+                </Link>
+                <Link to="/register" className="flex-1">
+                  <Button variant="emerald" className="w-full" size="sm">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
