@@ -606,6 +606,16 @@ function AddCourseDialog() {
   const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [price, setPrice] = useState("0");
   const [duration, setDuration] = useState("");
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
+
+  const handleThumbnail = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setThumbnailPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -615,7 +625,7 @@ function AddCourseDialog() {
       title,
       description,
       subject,
-      thumbnail: "/placeholder.svg",
+      thumbnail: thumbnailPreview || "/placeholder.svg",
       instructor: INSTRUCTOR.name,
       duration: duration || "TBD",
       lessons: 0,
@@ -631,7 +641,7 @@ function AddCourseDialog() {
     saveCourses(courses);
     toast({ title: "Course Created! ✅", description: `"${title}" is now live.` });
     setOpen(false);
-    setTitle(""); setDescription(""); setPrice("0"); setDuration("");
+    setTitle(""); setDescription(""); setPrice("0"); setDuration(""); setThumbnailPreview("");
   };
 
   return (
@@ -645,11 +655,25 @@ function AddCourseDialog() {
           <p className="text-xs text-muted-foreground mt-1">Create a course</p>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-serif text-xl">Create New Course ✨</DialogTitle></DialogHeader>
         <form onSubmit={handleSave} className="space-y-4 mt-2">
           <div className="space-y-2"><Label>Course Name *</Label><Input placeholder="e.g., Tajweed Basics" value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea placeholder="What will students learn?" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label>Thumbnail Image</Label>
+            <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
+              {thumbnailPreview ? (
+                <img src={thumbnailPreview} alt="Preview" className="h-24 w-full object-cover rounded-lg" />
+              ) : (
+                <>
+                  <Image className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Click to upload thumbnail</p>
+                </>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handleThumbnail} />
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Subject</Label>
