@@ -1,21 +1,28 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { subjects, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses } from "@/lib/store";
+import { getCourses, enrollStudent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useScrollReveal } from "@/hooks/use-animations";
 import { IslamicDivider, ArabicQuote } from "@/components/IslamicDecorations";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const course = getCourses().find((c) => c.id === courseId);
   const [openUnits, setOpenUnits] = useState<string[]>(course?.units.map((u) => u.id) || []);
   const currRef = useScrollReveal(0.1);
   const instrRef = useScrollReveal();
+
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("elaf_user") || "null"); } catch { return null; }
+  }, []);
 
   if (!course) {
     return (
@@ -35,6 +42,28 @@ export default function CourseDetail() {
   const subject = subjects.find((s) => s.id === course.subject);
   const totalLessons = course.units.reduce((acc, u) => acc + u.lessons.length, 0);
   const toggleUnit = (id: string) => setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  const handleEnroll = () => {
+    if (!currentUser) {
+      navigate("/register");
+      return;
+    }
+
+    if (!course.isFree && course.price && course.price > 0) {
+      // Redirect to WhatsApp for paid courses
+      const whatsappNumber = "923001234567"; // Update with real number
+      const message = encodeURIComponent(
+        `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
+      );
+      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+      return;
+    }
+
+    // Free course — enroll directly
+    enrollStudent(currentUser.email, course.id);
+    toast({ title: "Enrolled Successfully! 🎉", description: `You're now enrolled in "${course.title}".` });
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -63,9 +92,9 @@ export default function CourseDetail() {
               <span className="flex items-center gap-2"><Star className="h-4 w-4 text-gold" />{course.rating} rating</span>
             </div>
             <div className="mt-8 flex gap-4">
-              <Link to="/login">
-                <Button variant="hero" size="lg" className="animate-pulse-glow">Enroll Now</Button>
-              </Link>
+              <Button variant="hero" size="lg" className="animate-pulse-glow" onClick={handleEnroll}>
+                {!currentUser ? "Register & Enroll" : course.isFree ? "Enroll Now — Free" : `Buy — $${course.price}`}
+              </Button>
             </div>
           </div>
         </div>
