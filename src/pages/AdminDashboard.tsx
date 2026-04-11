@@ -874,3 +874,54 @@ function GradeDialog({ assignment, onSave }: { assignment: any; onSave: (grade: 
     </Dialog>
   );
 }
+
+/* ========== ASSIGN COURSE DIALOG ========== */
+function AssignCourseDialog({ students, courses }: { students: import("@/lib/mock-data").Student[]; courses: Course[] }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [studentEmail, setStudentEmail] = useState("");
+  const [courseId, setCourseId] = useState("");
+
+  const handleAssign = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentEmail || !courseId) return;
+    enrollStudent(studentEmail, courseId);
+    const courseName = courses.find((c) => c.id === courseId)?.title || "Course";
+    const studentName = students.find((s) => s.email === studentEmail)?.name || studentEmail;
+    toast({ title: "Course Assigned! ✅", description: `"${courseName}" assigned to ${studentName}.` });
+    setOpen(false);
+    setStudentEmail("");
+    setCourseId("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="emerald" size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Assign Course</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle className="font-serif text-lg">Assign Course to Student</DialogTitle></DialogHeader>
+        <form onSubmit={handleAssign} className="space-y-4 mt-2">
+          <div className="space-y-2">
+            <Label>Student *</Label>
+            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={studentEmail} onChange={(e) => setStudentEmail(e.target.value)} required>
+              <option value="">Select a student...</option>
+              {students.map((s) => <option key={s.id} value={s.email}>{s.name} ({s.email})</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label>Course *</Label>
+            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={courseId} onChange={(e) => setCourseId(e.target.value)} required>
+              <option value="">Select a course...</option>
+              {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
+            <Button type="submit" variant="emerald" className="flex-1"><GraduationCap className="h-4 w-4 mr-1" /> Assign</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
