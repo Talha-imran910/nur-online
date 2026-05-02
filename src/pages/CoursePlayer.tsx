@@ -1,23 +1,55 @@
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { sampleQuiz } from "@/lib/mock-data";
-import { getCourses } from "@/lib/store";
+import { getCourses, onStoreUpdate } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle, ArrowLeft, ShieldAlert } from "lucide-react";
 
 export default function CoursePlayer() {
   const { courseId } = useParams();
-  const course = getCourses().find((c) => c.id === courseId);
+  const [, setTick] = useState(0);
+
+  // Reactive: re-render when teacher updates lessons/courses
+  useEffect(() => onStoreUpdate(() => setTick((t) => t + 1)), []);
+
+  const course = useMemo(() => getCourses().find((c) => c.id === courseId), [courseId]);
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("elaf_user") || "{}"); } catch { return {}; }
+  }, []);
+
   const [currentLessonId, setCurrentLessonId] = useState(course?.units[0]?.lessons[0]?.id || "");
-  const [completedLessons, setCompletedLessons] = useState<string[]>(
-    course?.units[0]?.lessons.slice(0, 2).map((l) => l.id) || []
-  );
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [hidden, setHidden] = useState(false); // anti-screen-record: hide on tab blur
+
+  // Anti screen-recording / sharing deterrents
+  useEffect(() => {
+    const onVis = () => setHidden(document.visibilityState !== "visible");
+    const onContext = (e: MouseEvent) => e.preventDefault();
+    const onKey = (e: KeyboardEvent) => {
+      // Block PrintScreen and common save shortcuts
+      if (e.key === "PrintScreen") {
+        navigator.clipboard?.writeText("").catch(() => {});
+        setHidden(true);
+        setTimeout(() => setHidden(false), 1500);
+      }
+      if ((e.ctrlKey || e.metaKey) && ["s", "p", "u"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    document.addEventListener("contextmenu", onContext);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("contextmenu", onContext);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   if (!course) return <div className="p-8 text-center font-serif text-2xl">Course not found</div>;
 
@@ -69,7 +101,7 @@ export default function CoursePlayer() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-y-auto">
           {currentLesson && !showQuiz && (
-            <div className="aspect-video w-full bg-black">
+            <div className="relative aspect-video w-full bg-black select-none" style={{ WebkitUserSelect: "none" }}>
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}?rel=0&modestbranding=1&disablekb=0`}
                 className="w-full h-full"
@@ -78,6 +110,23 @@ export default function CoursePlayer() {
                 title={currentLesson.title}
                 referrerPolicy="strict-origin-when-cross-origin"
               />
+              {/* Diagonal watermark overlay — discourages screen recording/sharing */}
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-20"
+                aria-hidden="true"
+              >
+                <span className="text-cream font-serif text-2xl md:text-4xl rotate-[-25deg] whitespace-nowrap drop-shadow-lg">
+                  {currentUser.email || "Elaf-ul-Quran"} • Elaf-ul-Quran Academy
+                </span>
+              </div>
+              {/* Hidden overlay when tab is not visible / PrintScreen pressed */}
+              {hidden && (
+                <div className="absolute inset-0 bg-navy flex flex-col items-center justify-center text-center p-6 z-10">
+                  <ShieldAlert className="h-12 w-12 text-gold mb-3" />
+                  <p className="text-cream font-serif text-lg">Video paused for content protection</p>
+                  <p className="text-cream/60 text-xs mt-1">Recording or sharing this lesson is prohibited.</p>
+                </div>
+              )}
             </div>
           )}
 

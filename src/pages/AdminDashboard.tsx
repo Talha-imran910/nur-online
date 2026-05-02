@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Course, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent } from "@/lib/store";
+import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent, removeLessonFromCourse, unenrollStudent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -264,9 +264,10 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
+                    <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/50">
                       <EditPriceDialog course={c} onSave={(price, isFree) => handleUpdateCoursePrice(c.id, price, isFree)} />
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-lg" onClick={() => handleDeleteCourse(c.id)}>
+                      <ManageLessonsDialog course={c} />
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-lg" onClick={() => { if (confirm(`Delete "${c.title}"? This cannot be undone.`)) handleDeleteCourse(c.id); }}>
                         <Trash2 className="h-3 w-3" /> Delete
                       </Button>
                     </div>
@@ -342,9 +343,12 @@ export default function AdminDashboard() {
 
           {/* ===== STUDENTS ===== */}
           <TabsContent value="students" className="animate-fade-in">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
               <h2 className="font-serif text-2xl font-bold text-foreground">All Students</h2>
-              <Badge variant="secondary" className="text-sm px-3 py-1">{totalStudents} total</Badge>
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="text-sm px-3 py-1">{totalStudents} total</Badge>
+                <AssignCourseDialog students={students} courses={courseList} />
+              </div>
             </div>
             <Card className="border-border/50 overflow-hidden">
               <CardContent className="p-0">
@@ -377,9 +381,26 @@ export default function AdminDashboard() {
                             <td className="p-4 text-muted-foreground text-xs">{s.email}</td>
                             <td className="p-4">
                               <div className="flex flex-wrap gap-1">
+                                {s.enrolledCourses.length === 0 && <span className="text-[11px] text-muted-foreground italic">None</span>}
                                 {s.enrolledCourses.map((cid) => {
                                   const course = courseList.find((c) => c.id === cid);
-                                  return course ? <Badge key={cid} variant="secondary" className="text-[10px]">{course.title.slice(0, 20)}</Badge> : null;
+                                  if (!course) return null;
+                                  return (
+                                    <Badge key={cid} variant="secondary" className="text-[10px] gap-1 pr-1">
+                                      {course.title.slice(0, 18)}
+                                      <button
+                                        type="button"
+                                        title="Unenroll"
+                                        className="ml-0.5 hover:text-destructive"
+                                        onClick={() => {
+                                          if (confirm(`Remove ${s.name} from "${course.title}"?`)) {
+                                            unenrollStudent(s.email, cid);
+                                            toast({ title: "Unenrolled", description: `${s.name} removed from ${course.title}.` });
+                                          }
+                                        }}
+                                      >×</button>
+                                    </Badge>
+                                  );
                                 })}
                               </div>
                             </td>
@@ -921,6 +942,60 @@ function AssignCourseDialog({ students, courses }: { students: import("@/lib/moc
             <Button type="submit" variant="emerald" className="flex-1"><GraduationCap className="h-4 w-4 mr-1" /> Assign</Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ========== MANAGE LESSONS DIALOG ========== */
+function ManageLessonsDialog({ course }: { course: Course }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+
+  const handleRemove = (lessonId: string, title: string) => {
+    if (!confirm(`Remove lesson "${title}"? This cannot be undone.`)) return;
+    removeLessonFromCourse(course.id, lessonId);
+    toast({ title: "Lesson Removed 🗑️", description: `"${title}" was removed.` });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 rounded-lg">
+          <Edit className="h-3 w-3" /> Manage Lessons
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">Manage Lessons — {course.title}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {course.units.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No lessons yet. Add one from "Add Content".</p>
+          )}
+          {course.units.map((unit) => (
+            <div key={unit.id} className="space-y-2">
+              <p className="text-xs font-semibold text-gold uppercase tracking-wider">{unit.title}</p>
+              {unit.lessons.length === 0 && <p className="text-xs text-muted-foreground italic">No lessons in this unit.</p>}
+              {unit.lessons.map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{l.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{l.duration}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0"
+                    onClick={() => handleRemove(l.id, l.title)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </DialogContent>
     </Dialog>
   );

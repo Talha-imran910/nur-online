@@ -65,6 +65,37 @@ export function addLessonToCourse(courseId: string, unitId: string, lesson: Less
   saveCourses(courses);
 }
 
+export function removeLessonFromCourse(courseId: string, lessonId: string) {
+  const courses = getCourses();
+  const course = courses.find((c) => c.id === courseId);
+  if (!course) return;
+  course.units.forEach((u) => {
+    u.lessons = u.lessons.filter((l) => l.id !== lessonId);
+  });
+  course.lessons = course.units.reduce((acc, u) => acc + u.lessons.length, 0);
+  saveCourses(courses);
+}
+
+export function updateLessonInCourse(courseId: string, lessonId: string, updates: Partial<Lesson>) {
+  const courses = getCourses();
+  const course = courses.find((c) => c.id === courseId);
+  if (!course) return;
+  course.units.forEach((u) => {
+    u.lessons = u.lessons.map((l) => (l.id === lessonId ? { ...l, ...updates } : l));
+  });
+  saveCourses(courses);
+}
+
+export function unenrollStudent(studentEmail: string, courseId: string) {
+  const students = getStudents();
+  const student = students.find((s) => s.email === studentEmail);
+  if (student) {
+    student.enrolledCourses = student.enrolledCourses.filter((id) => id !== courseId);
+    delete student.progress[courseId];
+    saveStudents(students);
+  }
+}
+
 // ── Students ─────────────────────────────────────────────
 export function getStudents(): Student[] {
   return read(KEYS.students, defaultStudents);
