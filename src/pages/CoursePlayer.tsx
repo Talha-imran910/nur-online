@@ -1,23 +1,55 @@
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { sampleQuiz } from "@/lib/mock-data";
-import { getCourses } from "@/lib/store";
+import { getCourses, onStoreUpdate } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle, ArrowLeft, ShieldAlert } from "lucide-react";
 
 export default function CoursePlayer() {
   const { courseId } = useParams();
-  const course = getCourses().find((c) => c.id === courseId);
+  const [, setTick] = useState(0);
+
+  // Reactive: re-render when teacher updates lessons/courses
+  useEffect(() => onStoreUpdate(() => setTick((t) => t + 1)), []);
+
+  const course = useMemo(() => getCourses().find((c) => c.id === courseId), [courseId]);
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("elaf_user") || "{}"); } catch { return {}; }
+  }, []);
+
   const [currentLessonId, setCurrentLessonId] = useState(course?.units[0]?.lessons[0]?.id || "");
-  const [completedLessons, setCompletedLessons] = useState<string[]>(
-    course?.units[0]?.lessons.slice(0, 2).map((l) => l.id) || []
-  );
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [hidden, setHidden] = useState(false); // anti-screen-record: hide on tab blur
+
+  // Anti screen-recording / sharing deterrents
+  useEffect(() => {
+    const onVis = () => setHidden(document.visibilityState !== "visible");
+    const onContext = (e: MouseEvent) => e.preventDefault();
+    const onKey = (e: KeyboardEvent) => {
+      // Block PrintScreen and common save shortcuts
+      if (e.key === "PrintScreen") {
+        navigator.clipboard?.writeText("").catch(() => {});
+        setHidden(true);
+        setTimeout(() => setHidden(false), 1500);
+      }
+      if ((e.ctrlKey || e.metaKey) && ["s", "p", "u"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    document.addEventListener("contextmenu", onContext);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("contextmenu", onContext);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   if (!course) return <div className="p-8 text-center font-serif text-2xl">Course not found</div>;
 
