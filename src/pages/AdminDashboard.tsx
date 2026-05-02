@@ -343,9 +343,12 @@ export default function AdminDashboard() {
 
           {/* ===== STUDENTS ===== */}
           <TabsContent value="students" className="animate-fade-in">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
               <h2 className="font-serif text-2xl font-bold text-foreground">All Students</h2>
-              <Badge variant="secondary" className="text-sm px-3 py-1">{totalStudents} total</Badge>
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="text-sm px-3 py-1">{totalStudents} total</Badge>
+                <AssignCourseDialog students={students} courses={courseList} />
+              </div>
             </div>
             <Card className="border-border/50 overflow-hidden">
               <CardContent className="p-0">
