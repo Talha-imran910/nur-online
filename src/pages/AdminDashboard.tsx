@@ -381,9 +381,26 @@ export default function AdminDashboard() {
                             <td className="p-4 text-muted-foreground text-xs">{s.email}</td>
                             <td className="p-4">
                               <div className="flex flex-wrap gap-1">
+                                {s.enrolledCourses.length === 0 && <span className="text-[11px] text-muted-foreground italic">None</span>}
                                 {s.enrolledCourses.map((cid) => {
                                   const course = courseList.find((c) => c.id === cid);
-                                  return course ? <Badge key={cid} variant="secondary" className="text-[10px]">{course.title.slice(0, 20)}</Badge> : null;
+                                  if (!course) return null;
+                                  return (
+                                    <Badge key={cid} variant="secondary" className="text-[10px] gap-1 pr-1">
+                                      {course.title.slice(0, 18)}
+                                      <button
+                                        type="button"
+                                        title="Unenroll"
+                                        className="ml-0.5 hover:text-destructive"
+                                        onClick={() => {
+                                          if (confirm(`Remove ${s.name} from "${course.title}"?`)) {
+                                            unenrollStudent(s.email, cid);
+                                            toast({ title: "Unenrolled", description: `${s.name} removed from ${course.title}.` });
+                                          }
+                                        }}
+                                      >×</button>
+                                    </Badge>
+                                  );
                                 })}
                               </div>
                             </td>
