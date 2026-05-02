@@ -101,7 +101,7 @@ export default function CoursePlayer() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-y-auto">
           {currentLesson && !showQuiz && (
-            <div className="aspect-video w-full bg-black">
+            <div className="relative aspect-video w-full bg-black select-none" style={{ WebkitUserSelect: "none" }}>
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}?rel=0&modestbranding=1&disablekb=0`}
                 className="w-full h-full"
@@ -110,6 +110,23 @@ export default function CoursePlayer() {
                 title={currentLesson.title}
                 referrerPolicy="strict-origin-when-cross-origin"
               />
+              {/* Diagonal watermark overlay — discourages screen recording/sharing */}
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-20"
+                aria-hidden="true"
+              >
+                <span className="text-cream font-serif text-2xl md:text-4xl rotate-[-25deg] whitespace-nowrap drop-shadow-lg">
+                  {currentUser.email || "Elaf-ul-Quran"} • Elaf-ul-Quran Academy
+                </span>
+              </div>
+              {/* Hidden overlay when tab is not visible / PrintScreen pressed */}
+              {hidden && (
+                <div className="absolute inset-0 bg-navy flex flex-col items-center justify-center text-center p-6 z-10">
+                  <ShieldAlert className="h-12 w-12 text-gold mb-3" />
+                  <p className="text-cream font-serif text-lg">Video paused for content protection</p>
+                  <p className="text-cream/60 text-xs mt-1">Recording or sharing this lesson is prohibited.</p>
+                </div>
+              )}
             </div>
           )}
 
