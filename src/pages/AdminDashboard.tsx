@@ -929,3 +929,57 @@ function AssignCourseDialog({ students, courses }: { students: import("@/lib/moc
     </Dialog>
   );
 }
+
+/* ========== MANAGE LESSONS DIALOG ========== */
+function ManageLessonsDialog({ course }: { course: Course }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+
+  const handleRemove = (lessonId: string, title: string) => {
+    if (!confirm(`Remove lesson "${title}"? This cannot be undone.`)) return;
+    removeLessonFromCourse(course.id, lessonId);
+    toast({ title: "Lesson Removed 🗑️", description: `"${title}" was removed.` });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 rounded-lg">
+          <Edit className="h-3 w-3" /> Manage Lessons
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">Manage Lessons — {course.title}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {course.units.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No lessons yet. Add one from "Add Content".</p>
+          )}
+          {course.units.map((unit) => (
+            <div key={unit.id} className="space-y-2">
+              <p className="text-xs font-semibold text-gold uppercase tracking-wider">{unit.title}</p>
+              {unit.lessons.length === 0 && <p className="text-xs text-muted-foreground italic">No lessons in this unit.</p>}
+              {unit.lessons.map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{l.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{l.duration}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0"
+                    onClick={() => handleRemove(l.id, l.title)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
