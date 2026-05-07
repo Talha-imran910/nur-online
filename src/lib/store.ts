@@ -88,7 +88,7 @@ export function updateLessonInCourse(courseId: string, lessonId: string, updates
 
 export function unenrollStudent(studentEmail: string, courseId: string) {
   const students = getStudents();
-  const student = students.find((s) => s.email === studentEmail);
+  const student = students.find((s) => s.email.toLowerCase() === studentEmail.toLowerCase());
   if (student) {
     student.enrolledCourses = student.enrolledCourses.filter((id) => id !== courseId);
     delete student.progress[courseId];

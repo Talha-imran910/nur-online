@@ -9,6 +9,7 @@ import elafLogo from "@/assets/elaf-logo.png";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 import { Eye, EyeOff, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ensureStudent } from "@/lib/store";
 
 const TEACHER_EMAIL = "afshan@elaf.com";
 const TEACHER_PASS = "elaf2024";
@@ -52,7 +53,9 @@ export default function Login() {
         toast({ title: "Assalamu Alaikum, Ustadha! 🌙", description: "Welcome to your teacher dashboard." });
         navigate("/admin");
       } else if (email && password) {
-        localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email, name: email.split("@")[0] }));
+        const name = email.split("@")[0];
+        localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email, name }));
+        ensureStudent({ email, name });
         toast({ title: "Welcome back! 📖", description: "Continuing your Quranic journey..." });
         navigate("/dashboard");
       }
