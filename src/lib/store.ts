@@ -115,11 +115,46 @@ export function addStudent(student: Student) {
 
 export function enrollStudent(studentEmail: string, courseId: string) {
   const students = getStudents();
-  const student = students.find((s) => s.email === studentEmail);
-  if (student && !student.enrolledCourses.includes(courseId)) {
+  let student = students.find((s) => s.email.toLowerCase() === studentEmail.toLowerCase());
+  if (!student) {
+    // Auto-create a student record if missing (e.g., user logged in without registering)
+    let name = studentEmail.split("@")[0];
+    try {
+      const u = JSON.parse(localStorage.getItem("elaf_user") || "{}");
+      if (u?.name) name = u.name;
+    } catch {}
+    student = {
+      id: `s-${Date.now()}`,
+      name,
+      email: studentEmail,
+      enrolledCourses: [],
+      progress: {},
+      joinedDate: new Date().toISOString().split("T")[0],
+    };
+    students.push(student);
+  }
+  if (!student.enrolledCourses.includes(courseId)) {
     student.enrolledCourses.push(courseId);
     student.progress[courseId] = 0;
   }
+  saveStudents(students);
+}
+
+/** Ensure a student record exists for the given user (used after login) */
+export function ensureStudent(user: { email: string; name?: string; phone?: string }) {
+  if (!user?.email) return;
+  const students = getStudents();
+  const exists = students.find((s) => s.email.toLowerCase() === user.email.toLowerCase());
+  if (exists) return;
+  const freeCourses = getCourses().filter((c) => c.isFree).map((c) => c.id);
+  students.push({
+    id: `s-${Date.now()}`,
+    name: user.name || user.email.split("@")[0],
+    email: user.email,
+    enrolledCourses: freeCourses,
+    progress: Object.fromEntries(freeCourses.map((id) => [id, 0])),
+    joinedDate: new Date().toISOString().split("T")[0],
+  });
   saveStudents(students);
 }
 
