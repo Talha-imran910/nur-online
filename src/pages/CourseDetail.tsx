@@ -51,7 +51,7 @@ export default function CourseDetail() {
 
     if (!course.isFree && course.price && course.price > 0) {
       // Redirect to WhatsApp for paid courses (use anchor click to avoid popup blockers)
-      const whatsappNumber = "923001234567"; // Update with real number
+      const whatsappNumber = "923305014489"; // Update with real number
       const message = encodeURIComponent(
         `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
       );

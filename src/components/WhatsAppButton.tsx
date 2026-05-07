@@ -1,6 +1,6 @@
 import { MessageCircle } from "lucide-react";
 
-const WHATSAPP_NUMBER = "923001234567"; // Replace with actual number
+const WHATSAPP_NUMBER = "923305014489"; // Replace with actual number
 const MESSAGE = "Assalamu Alaikum! I'm interested in Quran courses at Elaf-ul-Quran Academy.";
 
 export default function WhatsAppButton() {
