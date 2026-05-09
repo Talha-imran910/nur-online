@@ -8,7 +8,8 @@ import elafLogo from "@/assets/elaf-logo.png";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { addStudent, getStudents, getCourses } from "@/lib/store";
+import { addStudent, getCourses } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -19,37 +20,48 @@ export default function Register() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 8) {
+      toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
 
-    // Check if student already exists
-    const existing = getStudents().find((s) => s.email.toLowerCase() === email.toLowerCase());
-    if (existing) {
-      toast({ title: "Account already exists", description: "Try signing in instead.", variant: "destructive" });
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: { name: name.trim(), phone: phone.trim() },
+      },
+    });
+
+    if (error) {
+      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
       setLoading(false);
       return;
     }
 
-    // Get free courses to auto-enroll
+    // Mirror to local store for the (still localStorage-backed) dashboards.
     const freeCourses = getCourses().filter((c) => c.isFree).map((c) => c.id);
+    addStudent({
+      id: data.user?.id || `s-${Date.now()}`,
+      name: name.trim(),
+      email: cleanEmail,
+      enrolledCourses: freeCourses,
+      progress: Object.fromEntries(freeCourses.map((id) => [id, 0])),
+      joinedDate: new Date().toISOString().split("T")[0],
+    });
 
-    setTimeout(() => {
-      // Add student to the shared store
-      addStudent({
-        id: `s-${Date.now()}`,
-        name,
-        email,
-        enrolledCourses: freeCourses,
-        progress: Object.fromEntries(freeCourses.map((id) => [id, 0])),
-        joinedDate: new Date().toISOString().split("T")[0],
-      });
-
-      localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email, name, phone }));
-      toast({ title: "Account Created! 🎉", description: "Welcome to Elaf-ul-Quran Academy." });
-      navigate("/dashboard");
-      setLoading(false);
-    }, 600);
+    localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: cleanEmail, name: name.trim(), phone: phone.trim() }));
+    toast({
+      title: "Account Created! 🎉",
+      description: data.session ? "Welcome to Elaf-ul-Quran Academy." : "Check your email to verify your account, then sign in.",
+    });
+    navigate(data.session ? "/dashboard" : "/login");
+    setLoading(false);
   };
 
   return (

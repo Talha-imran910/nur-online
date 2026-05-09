@@ -10,9 +10,7 @@ import { ArabicQuote } from "@/components/IslamicDecorations";
 import { Eye, EyeOff, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ensureStudent } from "@/lib/store";
-
-const TEACHER_EMAIL = "afshan@elaf.com";
-const TEACHER_PASS = "elaf2024";
+import { supabase, isCurrentUserTeacher } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -28,39 +26,52 @@ export default function Login() {
     try {
       const saved = localStorage.getItem("elaf_remember");
       if (saved) {
-        const { email: savedEmail, password: savedPass } = JSON.parse(saved);
+        const { email: savedEmail } = JSON.parse(saved);
         setEmail(savedEmail || "");
-        setPassword(savedPass || "");
         setRememberMe(true);
       }
     } catch {}
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Save or clear remembered credentials
     if (rememberMe) {
-      localStorage.setItem("elaf_remember", JSON.stringify({ email, password }));
+      localStorage.setItem("elaf_remember", JSON.stringify({ email }));
     } else {
       localStorage.removeItem("elaf_remember");
     }
 
-    setTimeout(() => {
-      if (email.toLowerCase() === TEACHER_EMAIL && password === TEACHER_PASS) {
-        localStorage.setItem("elaf_user", JSON.stringify({ role: "teacher", email, name: "Ustadha Afshan Imran" }));
-        toast({ title: "Assalamu Alaikum, Ustadha! 🌙", description: "Welcome to your teacher dashboard." });
-        navigate("/admin");
-      } else if (email && password) {
-        const name = email.split("@")[0];
-        localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email, name }));
-        ensureStudent({ email, name });
-        toast({ title: "Welcome back! 📖", description: "Continuing your Quranic journey..." });
-        navigate("/dashboard");
-      }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (error || !data.user) {
+      toast({
+        title: "Sign-in failed",
+        description: error?.message || "Check your email and password.",
+        variant: "destructive",
+      });
       setLoading(false);
-    }, 600);
+      return;
+    }
+
+    const isTeacher = await isCurrentUserTeacher();
+    const name = (data.user.user_metadata?.name as string) || data.user.email!.split("@")[0];
+
+    if (isTeacher) {
+      localStorage.setItem("elaf_user", JSON.stringify({ role: "teacher", email: data.user.email, name: "Ustadha Afshan Imran" }));
+      toast({ title: "Assalamu Alaikum, Ustadha! 🌙", description: "Welcome to your teacher dashboard." });
+      navigate("/admin");
+    } else {
+      localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: data.user.email, name }));
+      ensureStudent({ email: data.user.email!, name });
+      toast({ title: "Welcome back! 📖", description: "Continuing your Quranic journey..." });
+      navigate("/dashboard");
+    }
+    setLoading(false);
   };
 
   return (
