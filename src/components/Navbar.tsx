@@ -70,6 +70,11 @@ export default function Navbar() {
               <Link to={currentUser.role === "teacher" ? "/admin" : "/dashboard"}>
                 <Button variant="ghost" size="sm">My Dashboard</Button>
               </Link>
+              {currentUser.role !== "teacher" && (
+                <Link to="/profile">
+                  <Button variant="ghost" size="sm">Profile</Button>
+                </Link>
+              )}
               <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
                 <LogOut className="h-3.5 w-3.5" /> Logout
               </Button>
