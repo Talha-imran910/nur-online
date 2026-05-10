@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Course, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent, removeLessonFromCourse, unenrollStudent } from "@/lib/store";
+import { getCourses, saveCourses, getStudents, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent, removeLessonFromCourse, unenrollStudent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
-  BookOpen, Users, FileText, BarChart3, Plus, Edit, LogOut,
-  GraduationCap, Star, Upload, Video, CheckCircle2, Clock,
-  Save, TrendingUp, Award, MessageSquare, ChevronRight, Sparkles,
+  BookOpen, Users, BarChart3, Plus, Edit, LogOut,
+  GraduationCap, Star, Upload, Video, CheckCircle2,
+  Save, TrendingUp, Sparkles,
   Radio, HelpCircle, Trash2, DollarSign, Image, FileUp, Settings
 } from "lucide-react";
 import elafLogo from "@/assets/elaf-logo.png";
@@ -38,14 +38,10 @@ export default function AdminDashboard() {
   // Read from store
   const courseList = getCourses();
   const students = getStudents();
-  const assignments = getAssignments();
 
   const totalStudents = students.length;
   const totalLessons = courseList.reduce((acc, c) => acc + c.lessons, 0);
 
-  // Grading state
-  const [gradesPublished, setGradesPublished] = useState(false);
-  const pendingGrading = assignments.filter((a) => a.submitted && !a.grade).length;
 
   // Live class state
   const [isLive, setIsLive] = useState(() => !!getLiveClass());
@@ -84,17 +80,6 @@ export default function AdminDashboard() {
     const updated = courseList.map((c) => c.id === id ? { ...c, price, isFree } : c);
     saveCourses(updated);
     toast({ title: "Price Updated 💰", description: isFree ? "Course set to Free." : `Price set to $${price}.` });
-  };
-
-  const publishAllGrades = () => {
-    setGradesPublished(true);
-    toast({ title: "All Grades Published! 🎓", description: "Students can now see their final grades." });
-  };
-
-  const updateGrade = (assignmentId: string, grade: number, feedback: string) => {
-    const updated = assignments.map((a) => a.id === assignmentId ? { ...a, grade, feedback } : a);
-    saveAssignments(updated);
-    toast({ title: "Grade Saved! ✅", description: `Grade: ${grade}%` });
   };
 
   return (
