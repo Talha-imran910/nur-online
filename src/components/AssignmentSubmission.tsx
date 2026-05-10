@@ -52,24 +52,7 @@ export default function AssignmentSubmission({ assignment, onSubmit }: Assignmen
               </div>
             )}
 
-            {assignment.grade !== undefined && (
-              <div className="mt-3 flex items-center gap-3">
-                <Badge className="bg-emerald/10 text-emerald-light border-emerald/30">
-                  Grade: {assignment.grade}%
-                </Badge>
-                {assignment.feedback && (
-                  <p className="text-xs text-muted-foreground italic flex-1">
-                    <span className="font-medium text-primary">Teacher: </span>{assignment.feedback}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {!assignment.grade && (
-              <Badge variant="secondary" className="mt-3">
-                ✅ Submitted — Awaiting Grading
-              </Badge>
-            )}
+            <Badge variant="secondary" className="mt-3">✅ Submitted</Badge>
           </div>
         </div>
       </div>

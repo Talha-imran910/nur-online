@@ -4,7 +4,7 @@ import { getCourses, getAssignments, getStudents, onStoreUpdate } from "@/lib/st
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, PlayCircle, Award, CheckCircle, LogOut } from "lucide-react";
+import { BookOpen, PlayCircle, CheckCircle, LogOut } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-animations";
 import elafLogo from "@/assets/elaf-logo.png";
 import AssignmentSubmission from "@/components/AssignmentSubmission";
@@ -43,12 +43,6 @@ export default function StudentDashboard() {
   const myAssignments = allAssignments.filter((a) => enrolledCourseIds.includes(a.courseId));
   const completedCount = Object.values(courseProgress).filter((p) => p >= 100).length;
 
-  // Calculate average grade from graded assignments
-  const gradedAssignments = myAssignments.filter((a) => a.grade);
-  const avgScore = gradedAssignments.length > 0
-    ? Math.round(gradedAssignments.reduce((acc, a) => acc + (a.grade || 0), 0) / gradedAssignments.length)
-    : 0;
-
   return (
     <div className="min-h-screen bg-background">
       <LiveClassBanner />
@@ -71,12 +65,11 @@ export default function StudentDashboard() {
           <p className="text-muted-foreground mt-1">Continue your journey with the Quran ✨</p>
         </div>
 
-        <div ref={statsRef} className="stagger-children grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div ref={statsRef} className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
             { icon: BookOpen, label: "Enrolled", value: enrolledCourses.length, color: "text-primary" },
             { icon: PlayCircle, label: "In Progress", value: enrolledCourses.length - completedCount, color: "text-gold" },
             { icon: CheckCircle, label: "Completed", value: completedCount, color: "text-emerald" },
-            { icon: Award, label: "Avg Score", value: avgScore ? `${avgScore}%` : "—", color: "text-gold" },
           ].map((s) => (
             <div key={s.label} className="glass-card rounded-xl p-5 hover-lift">
               <s.icon className={`h-6 w-6 ${s.color} mb-2`} />
