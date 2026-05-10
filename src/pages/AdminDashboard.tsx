@@ -124,7 +124,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-foreground animate-fade-in">Assalamu Alaikum, Ustadha! 🌙</h1>
-              <p className="text-sm text-muted-foreground mt-0.5 animate-fade-in" style={{ animationDelay: '0.1s' }}>Manage your courses, students, and grades</p>
+              <p className="text-sm text-muted-foreground mt-0.5 animate-fade-in" style={{ animationDelay: '0.1s' }}>Manage your courses and students</p>
             </div>
           </div>
         </div>
@@ -139,7 +139,6 @@ export default function AdminDashboard() {
               { value: "upload", icon: Upload, label: "Add Content" },
               { value: "live", icon: Radio, label: "Go Live" },
               { value: "students", icon: Users, label: "Students" },
-              { value: "grades", icon: Award, label: "Grades" },
               { value: "settings", icon: Settings, label: "Settings" },
               { value: "guide", icon: HelpCircle, label: "Help" },
             ].map((tab) => (
