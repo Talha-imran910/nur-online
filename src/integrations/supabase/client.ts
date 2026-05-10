@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Public publishable key — safe to commit. Real security is enforced by RLS in Supabase.
-const SUPABASE_URL = "https://ygacoyszusqoyasifyjh.supabase.co";
+const SUPABASE_URL = "https://yvrtcxeuqygvffhnvyf.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5WTpYvpIlhOKKIleykRSvA_ey1w1ddC";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
