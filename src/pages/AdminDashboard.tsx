@@ -470,7 +470,7 @@ export default function AdminDashboard() {
                   { title: "📄 Upload PDF", steps: ["Click 'Add Content' tab", "Click 'Upload PDF'", "Select PDF file from your device", "Choose which course it belongs to"] },
                   { title: "💰 Change Price", steps: ["Go to 'Courses' tab", "Click 'Edit Price' on any course", "Enter new price or toggle Free", "Click Save"] },
                   { title: "📺 Go Live", steps: ["Start Zoom/Google Meet", "Copy meeting link", "Go to 'Go Live' tab", "Choose which course to notify", "Paste link → 'Go Live Now'", "Click 'End' when done"] },
-                  { title: "📝 Grade Work", steps: ["Go to 'Grades' tab", "Click 'Grade' on any submission", "Enter grade (0-100) and feedback", "When all done → 'Publish All Grades'"] },
+                  
                   { title: "🗑️ Delete Course", steps: ["Go to 'Courses' tab", "Click 'Delete' on any course", "Course is removed immediately"] },
                 ].map((section, i) => (
                   <Card key={i} className="border-border/50 overflow-hidden hover-lift">
