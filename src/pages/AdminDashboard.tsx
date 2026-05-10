@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Course, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, saveCourses, getStudents, getAssignments, saveAssignments, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent, removeLessonFromCourse, unenrollStudent } from "@/lib/store";
+import { getCourses, saveCourses, getStudents, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent, removeLessonFromCourse, unenrollStudent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
-  BookOpen, Users, FileText, BarChart3, Plus, Edit, LogOut,
-  GraduationCap, Star, Upload, Video, CheckCircle2, Clock,
-  Save, TrendingUp, Award, MessageSquare, ChevronRight, Sparkles,
+  BookOpen, Users, BarChart3, Plus, Edit, LogOut,
+  GraduationCap, Star, Upload, Video, CheckCircle2,
+  Save, TrendingUp, Sparkles,
   Radio, HelpCircle, Trash2, DollarSign, Image, FileUp, Settings
 } from "lucide-react";
 import elafLogo from "@/assets/elaf-logo.png";
@@ -38,14 +38,10 @@ export default function AdminDashboard() {
   // Read from store
   const courseList = getCourses();
   const students = getStudents();
-  const assignments = getAssignments();
 
   const totalStudents = students.length;
   const totalLessons = courseList.reduce((acc, c) => acc + c.lessons, 0);
 
-  // Grading state
-  const [gradesPublished, setGradesPublished] = useState(false);
-  const pendingGrading = assignments.filter((a) => a.submitted && !a.grade).length;
 
   // Live class state
   const [isLive, setIsLive] = useState(() => !!getLiveClass());
@@ -84,17 +80,6 @@ export default function AdminDashboard() {
     const updated = courseList.map((c) => c.id === id ? { ...c, price, isFree } : c);
     saveCourses(updated);
     toast({ title: "Price Updated 💰", description: isFree ? "Course set to Free." : `Price set to $${price}.` });
-  };
-
-  const publishAllGrades = () => {
-    setGradesPublished(true);
-    toast({ title: "All Grades Published! 🎓", description: "Students can now see their final grades." });
-  };
-
-  const updateGrade = (assignmentId: string, grade: number, feedback: string) => {
-    const updated = assignments.map((a) => a.id === assignmentId ? { ...a, grade, feedback } : a);
-    saveAssignments(updated);
-    toast({ title: "Grade Saved! ✅", description: `Grade: ${grade}%` });
   };
 
   return (
@@ -139,7 +124,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-foreground animate-fade-in">Assalamu Alaikum, Ustadha! 🌙</h1>
-              <p className="text-sm text-muted-foreground mt-0.5 animate-fade-in" style={{ animationDelay: '0.1s' }}>Manage your courses, students, and grades</p>
+              <p className="text-sm text-muted-foreground mt-0.5 animate-fade-in" style={{ animationDelay: '0.1s' }}>Manage your courses and students</p>
             </div>
           </div>
         </div>
@@ -154,7 +139,6 @@ export default function AdminDashboard() {
               { value: "upload", icon: Upload, label: "Add Content" },
               { value: "live", icon: Radio, label: "Go Live" },
               { value: "students", icon: Users, label: "Students" },
-              { value: "grades", icon: Award, label: "Grades" },
               { value: "settings", icon: Settings, label: "Settings" },
               { value: "guide", icon: HelpCircle, label: "Help" },
             ].map((tab) => (
@@ -421,75 +405,6 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* ===== GRADES ===== */}
-          <TabsContent value="grades" className="animate-fade-in">
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <div>
-                <h2 className="font-serif text-2xl font-bold text-foreground">Grades & Assignments</h2>
-                <p className="text-sm text-muted-foreground mt-1">Grade work individually, then publish all at once ✨</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {pendingGrading > 0 && (
-                  <Badge className="bg-gold/10 text-gold border border-gold/20 px-3 py-1.5">{pendingGrading} pending</Badge>
-                )}
-                <Button variant="emerald" className="gap-2 rounded-xl" onClick={publishAllGrades} disabled={gradesPublished}>
-                  <Award className="h-4 w-4" />
-                  {gradesPublished ? "Grades Published ✅" : "Publish All Grades"}
-                </Button>
-              </div>
-            </div>
-
-            {gradesPublished && (
-              <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl animate-slide-up flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-sm text-foreground">All grades have been published! Students can now view their final grades.</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {assignments.map((a) => (
-                <Card key={a.id} className="border-border/50 hover-lift overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 text-primary" />
-                          <h3 className="font-serif text-lg font-bold text-foreground">{a.title}</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{a.description}</p>
-                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1"><Clock className="h-3 w-3" /> Due: {a.dueDate}</p>
-                        {a.submissionText && (
-                          <div className="mt-3 p-3 bg-muted/30 rounded-xl border border-border/50">
-                            <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Student's Answer:</p>
-                            <p className="text-sm text-foreground">{a.submissionText}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="shrink-0">
-                        {a.grade ? (
-                          <div className="text-right space-y-1">
-                            <Badge className="bg-primary/10 text-primary border border-primary/20">
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> {a.grade}%
-                            </Badge>
-                            {a.feedback && <p className="text-xs text-muted-foreground max-w-xs text-right italic">"{a.feedback}"</p>}
-                          </div>
-                        ) : a.submitted ? (
-                          <Badge variant="secondary" className="border border-gold/20 text-gold"><Clock className="h-3 w-3 mr-1" /> Needs Grading</Badge>
-                        ) : (
-                          <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> Not Submitted</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {a.submitted && (
-                      <div className="mt-4 pt-3 border-t border-border/50">
-                        <GradeDialog assignment={a} onSave={(grade, feedback) => updateGrade(a.id, grade, feedback)} />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
 
           {/* ===== SETTINGS ===== */}
           <TabsContent value="settings" className="animate-fade-in">
@@ -555,7 +470,7 @@ export default function AdminDashboard() {
                   { title: "📄 Upload PDF", steps: ["Click 'Add Content' tab", "Click 'Upload PDF'", "Select PDF file from your device", "Choose which course it belongs to"] },
                   { title: "💰 Change Price", steps: ["Go to 'Courses' tab", "Click 'Edit Price' on any course", "Enter new price or toggle Free", "Click Save"] },
                   { title: "📺 Go Live", steps: ["Start Zoom/Google Meet", "Copy meeting link", "Go to 'Go Live' tab", "Choose which course to notify", "Paste link → 'Go Live Now'", "Click 'End' when done"] },
-                  { title: "📝 Grade Work", steps: ["Go to 'Grades' tab", "Click 'Grade' on any submission", "Enter grade (0-100) and feedback", "When all done → 'Publish All Grades'"] },
+                  
                   { title: "🗑️ Delete Course", steps: ["Go to 'Courses' tab", "Click 'Delete' on any course", "Course is removed immediately"] },
                 ].map((section, i) => (
                   <Card key={i} className="border-border/50 overflow-hidden hover-lift">
@@ -855,40 +770,6 @@ function UploadPDFDialog({ courses }: { courses: Course[] }) {
           <div className="flex gap-2 pt-2">
             <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
             <Button type="submit" variant="emerald" className="flex-1"><Upload className="h-4 w-4 mr-1" /> Upload PDF</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ========== GRADE DIALOG ========== */
-function GradeDialog({ assignment, onSave }: { assignment: any; onSave: (grade: number, feedback: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [grade, setGrade] = useState(assignment.grade?.toString() || "");
-  const [feedback, setFeedback] = useState(assignment.feedback || "");
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="emerald" size="sm" className="gap-1.5 rounded-lg">
-          <Edit className="h-3 w-3" /> {assignment.grade ? "Edit Grade" : "Grade This"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle className="font-serif text-lg">Grade: {assignment.title}</DialogTitle></DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); onSave(Number(grade), feedback); setOpen(false); }} className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <Label>Grade (out of 100) *</Label>
-            <Input type="number" min="0" max="100" placeholder="e.g., 90" value={grade} onChange={(e) => setGrade(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label>Your Feedback</Label>
-            <Textarea placeholder="MashaAllah! Great effort..." rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
-            <Button type="submit" variant="emerald" className="flex-1"><CheckCircle2 className="h-4 w-4 mr-1" /> Save Grade</Button>
           </div>
         </form>
       </DialogContent>
