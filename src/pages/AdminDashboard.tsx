@@ -777,40 +777,6 @@ function UploadPDFDialog({ courses }: { courses: Course[] }) {
   );
 }
 
-/* ========== GRADE DIALOG ========== */
-function GradeDialog({ assignment, onSave }: { assignment: any; onSave: (grade: number, feedback: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [grade, setGrade] = useState(assignment.grade?.toString() || "");
-  const [feedback, setFeedback] = useState(assignment.feedback || "");
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="emerald" size="sm" className="gap-1.5 rounded-lg">
-          <Edit className="h-3 w-3" /> {assignment.grade ? "Edit Grade" : "Grade This"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle className="font-serif text-lg">Grade: {assignment.title}</DialogTitle></DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); onSave(Number(grade), feedback); setOpen(false); }} className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <Label>Grade (out of 100) *</Label>
-            <Input type="number" min="0" max="100" placeholder="e.g., 90" value={grade} onChange={(e) => setGrade(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label>Your Feedback</Label>
-            <Textarea placeholder="MashaAllah! Great effort..." rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
-            <Button type="submit" variant="emerald" className="flex-1"><CheckCircle2 className="h-4 w-4 mr-1" /> Save Grade</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 /* ========== ASSIGN COURSE DIALOG ========== */
 function AssignCourseDialog({ students, courses }: { students: import("@/lib/mock-data").Student[]; courses: Course[] }) {
   const { toast } = useToast();
