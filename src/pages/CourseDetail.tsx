@@ -50,19 +50,16 @@ export default function CourseDetail() {
     }
 
     if (!course.isFree && course.price && course.price > 0) {
-      // Redirect to WhatsApp for paid courses (use anchor click to avoid popup blockers)
-      const whatsappNumber = "923305014489"; // Update with real number
+      // Open WhatsApp in a new top-level tab to avoid X-Frame-Options blocks
+      const whatsappNumber = "923305014489";
       const message = encodeURIComponent(
         `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
       );
       const url = `https://wa.me/${whatsappNumber}?text=${message}`;
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        try { (window.top || window).location.href = url; } catch { window.location.href = url; }
+      }
       toast({ title: "Opening WhatsApp 💬", description: "Complete your enrollment by sending the message." });
       return;
     }
