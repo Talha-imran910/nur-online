@@ -9,7 +9,6 @@ import elafLogo from "@/assets/elaf-logo.png";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 import { Eye, EyeOff, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ensureStudent } from "@/lib/store";
 import { supabase, isCurrentUserTeacher } from "@/integrations/supabase/client";
 
 export default function Login() {
@@ -21,7 +20,6 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Load saved credentials
   useEffect(() => {
     try {
       const saved = localStorage.getItem("elaf_remember");
@@ -37,11 +35,8 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    if (rememberMe) {
-      localStorage.setItem("elaf_remember", JSON.stringify({ email }));
-    } else {
-      localStorage.removeItem("elaf_remember");
-    }
+    if (rememberMe) localStorage.setItem("elaf_remember", JSON.stringify({ email }));
+    else localStorage.removeItem("elaf_remember");
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
@@ -49,11 +44,7 @@ export default function Login() {
     });
 
     if (error || !data.user) {
-      toast({
-        title: "Sign-in failed",
-        description: error?.message || "Check your email and password.",
-        variant: "destructive",
-      });
+      toast({ title: "Sign-in failed", description: error?.message || "Check your email and password.", variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -67,7 +58,6 @@ export default function Login() {
       navigate("/admin");
     } else {
       localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: data.user.email, name }));
-      ensureStudent({ email: data.user.email!, name });
       toast({ title: "Welcome back! 📖", description: "Continuing your Quranic journey..." });
       navigate("/dashboard");
     }
@@ -93,47 +83,21 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-8 space-y-5 shadow-elegant">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-11 rounded-xl"
-                required
-              />
+              <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 rounded-xl pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl pr-10" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked === true)}
-              />
-              <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-                Remember my email & password
-              </Label>
+              <Checkbox id="remember" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} />
+              <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">Remember my email</Label>
             </div>
 
             <Button type="submit" variant="emerald" className="w-full h-11 rounded-xl text-base" disabled={loading}>
@@ -143,10 +107,7 @@ export default function Login() {
                   Signing in...
                 </span>
               ) : (
-                <span className="flex items-center gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Sign In
-                </span>
+                <span className="flex items-center gap-2"><LogIn className="h-4 w-4" />Sign In</span>
               )}
             </Button>
 
@@ -155,7 +116,6 @@ export default function Login() {
               <Link to="/register" className="text-primary font-medium hover:underline">Register</Link>
             </div>
           </form>
-
           <ArabicQuote text="بسم الله الرحمن الرحيم" className="mt-6" />
         </div>
       </div>

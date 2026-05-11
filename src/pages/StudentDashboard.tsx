@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getCourses, getAssignments, getStudents, onStoreUpdate } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -10,38 +9,52 @@ import elafLogo from "@/assets/elaf-logo.png";
 import AssignmentSubmission from "@/components/AssignmentSubmission";
 import LiveClassBanner from "@/components/LiveClassBanner";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import {
+  fetchPublishedCourses,
+  fetchMyEnrollments,
+  fetchAssignmentsForCourses,
+  subscribeToTables,
+  type Course,
+  type AssignmentRow,
+} from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function StudentDashboard() {
-  const [, setTick] = useState(0);
   const statsRef = useScrollReveal();
   const coursesRef = useScrollReveal(0.1);
   const assignRef = useScrollReveal(0.1);
 
-  // Re-render on store changes
-  useEffect(() => {
-    return onStoreUpdate(() => setTick((t) => t + 1));
-  }, []);
-
-  // Get current student from localStorage
-  const currentUser = useMemo(() => {
+  const [currentUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("elaf_user") || "{}"); } catch { return {}; }
+  });
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !alive) return;
+      const [courses, enrolls] = await Promise.all([
+        fetchPublishedCourses(),
+        fetchMyEnrollments(user.id),
+      ]);
+      if (!alive) return;
+      setAllCourses(courses);
+      const ids = enrolls.map((e) => e.courseId);
+      setEnrolledIds(ids);
+      setProgressMap(Object.fromEntries(enrolls.map((e) => [e.courseId, e.progress])));
+      setAssignments(await fetchAssignmentsForCourses(ids));
+    };
+    load();
+    const unsub = subscribeToTables(["courses", "units", "lessons", "enrollments", "assignments"], load);
+    return () => { alive = false; unsub(); };
   }, []);
 
-  const allStudents = getStudents();
-  const allCourses = getCourses();
-  const allAssignments = getAssignments();
-
-  // Find this student in the store
-  const studentRecord = allStudents.find(
-    (s) => s.email.toLowerCase() === (currentUser.email || "").toLowerCase()
-  );
-
-  const enrolledCourseIds = studentRecord?.enrolledCourses || [];
-  const courseProgress = studentRecord?.progress || {};
-
-  const enrolledCourses = allCourses.filter((c) => enrolledCourseIds.includes(c.id));
-  const myAssignments = allAssignments.filter((a) => enrolledCourseIds.includes(a.courseId));
-  const completedCount = Object.values(courseProgress).filter((p) => p >= 100).length;
+  const enrolledCourses = allCourses.filter((c) => enrolledIds.includes(c.id));
+  const completedCount = Object.values(progressMap).filter((p) => p >= 100).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,7 +106,7 @@ export default function StudentDashboard() {
             <h2 className="font-serif text-2xl font-bold text-foreground mb-4">My Courses</h2>
             <div ref={coursesRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {enrolledCourses.map((course) => {
-                const progress = courseProgress[course.id] || 0;
+                const progress = progressMap[course.id] || 0;
                 return (
                   <div key={course.id} className="glass-card rounded-xl overflow-hidden hover-lift">
                     <div className="h-32 overflow-hidden relative">
@@ -118,11 +131,11 @@ export default function StudentDashboard() {
           </>
         )}
 
-        {myAssignments.length > 0 && (
+        {assignments.length > 0 && (
           <>
             <h2 className="font-serif text-2xl font-bold text-foreground mb-4">Assignments</h2>
             <div ref={assignRef} className="stagger-children space-y-3">
-              {myAssignments.map((a) => (
+              {assignments.map((a) => (
                 <AssignmentSubmission key={a.id} assignment={a} />
               ))}
             </div>
