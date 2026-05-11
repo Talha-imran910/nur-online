@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import elafLogo from "@/assets/elaf-logo.png";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { addStudent, getCourses } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Register() {
@@ -29,12 +28,13 @@ export default function Register() {
     setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
     const { data, error } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { name: name.trim(), phone: phone.trim() },
+        data: { name: cleanName, phone: phone.trim() },
       },
     });
 
@@ -44,18 +44,14 @@ export default function Register() {
       return;
     }
 
-    // Mirror to local store for the (still localStorage-backed) dashboards.
-    const freeCourses = getCourses().filter((c) => c.isFree).map((c) => c.id);
-    addStudent({
-      id: data.user?.id || `s-${Date.now()}`,
-      name: name.trim(),
-      email: cleanEmail,
-      enrolledCourses: freeCourses,
-      progress: Object.fromEntries(freeCourses.map((id) => [id, 0])),
-      joinedDate: new Date().toISOString().split("T")[0],
-    });
+    // Insert into students table (id = auth uid). Ignore conflict if a trigger already inserted.
+    if (data.user) {
+      await supabase
+        .from("students")
+        .upsert({ id: data.user.id, name: cleanName, email: cleanEmail }, { onConflict: "id" });
+    }
 
-    localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: cleanEmail, name: name.trim(), phone: phone.trim() }));
+    localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: cleanEmail, name: cleanName, phone: phone.trim() }));
     toast({
       title: "Account Created! 🎉",
       description: data.session ? "Welcome to Elaf-ul-Quran Academy." : "Check your email to verify your account, then sign in.",
@@ -100,10 +96,7 @@ export default function Register() {
                   Creating account...
                 </span>
               ) : (
-                <span className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Create Account
-                </span>
+                <span className="flex items-center gap-2"><UserPlus className="h-4 w-4" />Create Account</span>
               )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">

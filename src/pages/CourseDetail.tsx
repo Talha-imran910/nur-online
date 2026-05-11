@@ -2,11 +2,12 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { subjects, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, enrollStudent } from "@/lib/store";
+import { fetchCourseById, enrollInCourse, subscribeToTables, type Course } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useScrollReveal } from "@/hooks/use-animations";
 import { IslamicDivider, ArabicQuote } from "@/components/IslamicDecorations";
 import { useToast } from "@/hooks/use-toast";
@@ -15,14 +16,38 @@ export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const course = getCourses().find((c) => c.id === courseId);
-  const [openUnits, setOpenUnits] = useState<string[]>(course?.units.map((u) => u.id) || []);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [openUnits, setOpenUnits] = useState<string[]>([]);
   const currRef = useScrollReveal(0.1);
   const instrRef = useScrollReveal();
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("elaf_user") || "null"); } catch { return null; }
   }, []);
+
+  useEffect(() => {
+    if (!courseId) return;
+    let alive = true;
+    const load = async () => {
+      const c = await fetchCourseById(courseId);
+      if (!alive) return;
+      setCourse(c);
+      setOpenUnits(c?.units.map((u) => u.id) || []);
+      setLoading(false);
+    };
+    load();
+    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
+    return () => { alive = false; unsub(); };
+  }, [courseId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar /><div className="flex-1 flex items-center justify-center text-muted-foreground">Loading…</div><Footer />
+      </div>
+    );
+  }
 
   if (!course) {
     return (
@@ -43,14 +68,10 @@ export default function CourseDetail() {
   const totalLessons = course.units.reduce((acc, u) => acc + u.lessons.length, 0);
   const toggleUnit = (id: string) => setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
-  const handleEnroll = () => {
-    if (!currentUser) {
-      navigate("/register");
-      return;
-    }
+  const handleEnroll = async () => {
+    if (!currentUser) { navigate("/register"); return; }
 
-    if (!course.isFree && course.price && course.price > 0) {
-      // Open WhatsApp in a new top-level tab to avoid X-Frame-Options blocks
+    if (!course.isFree && course.price > 0) {
       const whatsappNumber = "923305014489";
       const message = encodeURIComponent(
         `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
@@ -64,8 +85,13 @@ export default function CourseDetail() {
       return;
     }
 
-    // Free course — enroll directly
-    enrollStudent(currentUser.email, course.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate("/login"); return; }
+    const { error } = await enrollInCourse(user.id, course.id);
+    if (error) {
+      toast({ title: "Enrollment failed", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Enrolled Successfully! 🎉", description: `You're now enrolled in "${course.title}".` });
     navigate("/dashboard");
   };
@@ -73,7 +99,6 @@ export default function CourseDetail() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-
       <section className="relative overflow-hidden islamic-overlay">
         <div className="absolute inset-0 z-0">
           <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
@@ -82,7 +107,7 @@ export default function CourseDetail() {
         <div className="relative z-10 container mx-auto px-4 py-16">
           <div className="max-w-3xl animate-slide-up">
             <div className="flex gap-2 mb-4">
-              <Badge className="bg-gold/20 text-gold border-gold/30">{subject?.icon} {subject?.name}</Badge>
+              {subject && <Badge className="bg-gold/20 text-gold border-gold/30">{subject.icon} {subject.name}</Badge>}
               <Badge className={course.isFree ? "bg-emerald/20 text-emerald-light border-emerald/30" : "bg-gold/20 text-gold border-gold/30"}>
                 {course.isFree ? "Free" : `$${course.price}`}
               </Badge>
@@ -93,8 +118,7 @@ export default function CourseDetail() {
             <div className="mt-6 flex flex-wrap gap-6 text-cream/50 text-sm">
               <span className="flex items-center gap-2"><BookOpen className="h-4 w-4" />{totalLessons} lessons</span>
               <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{course.duration}</span>
-              <span className="flex items-center gap-2"><Users className="h-4 w-4" />{course.students} students</span>
-              <span className="flex items-center gap-2"><Star className="h-4 w-4 text-gold" />{course.rating} rating</span>
+              <span className="flex items-center gap-2"><Star className="h-4 w-4 text-gold" />{course.rating || "—"} rating</span>
             </div>
             <div className="mt-8 flex gap-4">
               <Button variant="hero" size="lg" className="animate-pulse-glow" onClick={handleEnroll}>
@@ -113,6 +137,9 @@ export default function CourseDetail() {
           </div>
 
           <div className="space-y-4">
+            {course.units.length === 0 && (
+              <p className="text-center text-muted-foreground italic">Curriculum will be added soon, in shaa Allah.</p>
+            )}
             {course.units.map((unit, ui) => (
               <div key={unit.id} className="glass-card rounded-xl overflow-hidden animate-slide-up" style={{ animationDelay: `${ui * 0.1}s` }}>
                 <button onClick={() => toggleUnit(unit.id)} className="w-full flex items-center justify-between p-5 hover:bg-muted/30 transition-colors">
@@ -163,7 +190,6 @@ export default function CourseDetail() {
           <p className="text-xs text-muted-foreground text-center mt-1 italic">"Remember Me, and I will remember you" — Quran 2:152</p>
         </div>
       </section>
-
       <Footer />
     </div>
   );

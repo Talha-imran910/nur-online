@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Radio, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getLiveClass, onStoreUpdate, type LiveClass } from "@/lib/store";
+import { fetchLiveClass, subscribeToTable, type LiveClass } from "@/lib/db";
 
 interface LiveClassBannerProps {
-  courseId?: string; // If provided, only show banner for this course
+  courseId?: string;
 }
 
 export default function LiveClassBanner({ courseId }: LiveClassBannerProps) {
@@ -12,19 +12,19 @@ export default function LiveClassBanner({ courseId }: LiveClassBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const check = () => {
-      const live = getLiveClass();
-      // If courseId filter is set, only show if live class targets that course or all courses
+    let alive = true;
+    const load = async () => {
+      const live = await fetchLiveClass();
+      if (!alive) return;
       if (live && courseId && live.courseId && live.courseId !== courseId) {
         setLiveClass(null);
       } else {
         setLiveClass(live);
       }
     };
-    check();
-    const unsub = onStoreUpdate(check);
-    const interval = setInterval(check, 5000);
-    return () => { unsub(); clearInterval(interval); };
+    load();
+    const unsub = subscribeToTable("live_class", load);
+    return () => { alive = false; unsub(); };
   }, [courseId]);
 
   if (!liveClass || dismissed) return null;

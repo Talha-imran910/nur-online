@@ -8,14 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { getStudents, saveStudents, ensureStudent } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchMyProfile, updateMyName } from "@/lib/db";
 import { User as UserIcon } from "lucide-react";
 
-interface ProfileExtras {
-  phone?: string;
-  bio?: string;
-  avatar?: string;
-}
+interface ProfileExtras { phone?: string; bio?: string; avatar?: string; }
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -26,20 +23,17 @@ export default function Profile() {
   const [avatar, setAvatar] = useState("");
 
   useEffect(() => {
-    const u = JSON.parse(localStorage.getItem("elaf_user") || "null");
-    if (!u) {
-      navigate("/login");
-      return;
-    }
-    setUser(u);
-    ensureStudent(u);
-    const students = getStudents();
-    const me = students.find((s) => s.email.toLowerCase() === u.email.toLowerCase());
-    setName(me?.name || u.name || "");
-    const extras: ProfileExtras = JSON.parse(localStorage.getItem(`elaf_profile_${u.email.toLowerCase()}`) || "{}");
-    setPhone(extras.phone || u.phone || "");
-    setBio(extras.bio || "");
-    setAvatar(extras.avatar || "");
+    (async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) { navigate("/login"); return; }
+      setUser(authUser);
+      const profile = await fetchMyProfile(authUser.id);
+      setName(profile?.name || authUser.user_metadata?.name || "");
+      const extras: ProfileExtras = JSON.parse(localStorage.getItem(`elaf_profile_${authUser.email!.toLowerCase()}`) || "{}");
+      setPhone(extras.phone || "");
+      setBio(extras.bio || "");
+      setAvatar(extras.avatar || "");
+    })();
   }, [navigate]);
 
   const handleAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,27 +48,16 @@ export default function Profile() {
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return;
     const trimmed = name.trim();
-    if (!trimmed) {
-      toast({ title: "Name required", variant: "destructive" });
-      return;
-    }
-    // Update student record
-    const students = getStudents();
-    const idx = students.findIndex((s) => s.email.toLowerCase() === user.email.toLowerCase());
-    if (idx >= 0) {
-      students[idx].name = trimmed;
-      saveStudents(students);
-    }
-    // Update user blob
-    const updatedUser = { ...user, name: trimmed, phone };
-    localStorage.setItem("elaf_user", JSON.stringify(updatedUser));
-    // Save extras
+    if (!trimmed) { toast({ title: "Name required", variant: "destructive" }); return; }
+    const { error } = await updateMyName(user.id, trimmed);
+    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); return; }
     const extras: ProfileExtras = { phone, bio, avatar };
     localStorage.setItem(`elaf_profile_${user.email.toLowerCase()}`, JSON.stringify(extras));
-    setUser(updatedUser);
+    const stored = JSON.parse(localStorage.getItem("elaf_user") || "{}");
+    localStorage.setItem("elaf_user", JSON.stringify({ ...stored, name: trimmed, phone }));
     toast({ title: "Profile updated ✨", description: "Your changes have been saved." });
   };
 
@@ -97,9 +80,7 @@ export default function Profile() {
               )}
             </div>
             <div>
-              <Label htmlFor="avatar" className="cursor-pointer text-sm text-primary hover:underline">
-                Change picture
-              </Label>
+              <Label htmlFor="avatar" className="cursor-pointer text-sm text-primary hover:underline">Change picture</Label>
               <Input id="avatar" type="file" accept="image/*" onChange={handleAvatar} className="hidden" />
               <p className="text-xs text-muted-foreground mt-1">Max 1 MB</p>
             </div>
