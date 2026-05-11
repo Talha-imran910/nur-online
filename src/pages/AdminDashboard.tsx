@@ -1,7 +1,23 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Course, INSTRUCTOR } from "@/lib/mock-data";
-import { getCourses, saveCourses, getStudents, getLiveClass, setLiveClass as setLiveClassStore, onStoreUpdate, addLessonToCourse, enrollStudent, removeLessonFromCourse, unenrollStudent } from "@/lib/store";
+import { INSTRUCTOR } from "@/lib/mock-data";
+import {
+  fetchAllCourses,
+  fetchAllStudents,
+  fetchLiveClass,
+  startLiveClass,
+  endLiveClass,
+  createCourse,
+  updateCoursePrice,
+  deleteCourse,
+  addLesson,
+  removeLesson,
+  teacherEnroll,
+  teacherUnenroll,
+  subscribeToTables,
+  type Course,
+  type StudentRow,
+} from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +29,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
   BookOpen, Users, BarChart3, Plus, Edit, LogOut,
-  GraduationCap, Star, Upload, Video, CheckCircle2,
-  Save, TrendingUp, Sparkles,
-  Radio, HelpCircle, Trash2, DollarSign, Image, FileUp, Settings
+  GraduationCap, Star, Upload, Video, Save, TrendingUp, Sparkles,
+  Radio, HelpCircle, Trash2, DollarSign, Image, FileUp, Settings,
 } from "lucide-react";
 import elafLogo from "@/assets/elaf-logo.png";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useScrollReveal } from "@/hooks/use-animations";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,63 +41,66 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const statsRef = useScrollReveal();
   const { toast } = useToast();
-  const [, setTick] = useState(0);
 
-  // Re-render on store changes
+  const [courseList, setCourseList] = useState<Course[]>([]);
+  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [isLive, setIsLive] = useState(false);
+  const [liveTitle, setLiveTitle] = useState("Live Tajweed Class");
+  const [liveLink, setLiveLink] = useState("");
+  const [liveCourseId, setLiveCourseId] = useState("all");
+
+  const reload = async () => {
+    const [c, s, l] = await Promise.all([fetchAllCourses(), fetchAllStudents(), fetchLiveClass()]);
+    setCourseList(c);
+    setStudents(s);
+    setIsLive(!!l);
+  };
+
   useEffect(() => {
-    return onStoreUpdate(() => setTick((t) => t + 1));
+    reload();
+    const unsub = subscribeToTables(
+      ["courses", "units", "lessons", "enrollments", "students", "live_class"],
+      reload
+    );
+    return () => unsub();
   }, []);
-
-  // Read from store
-  const courseList = getCourses();
-  const students = getStudents();
 
   const totalStudents = students.length;
   const totalLessons = courseList.reduce((acc, c) => acc + c.lessons, 0);
 
-
-  // Live class state
-  const [isLive, setIsLive] = useState(() => !!getLiveClass());
-  const [liveTitle, setLiveTitle] = useState("Live Tajweed Class");
-  const [liveLink, setLiveLink] = useState("");
-  const [liveCourseId, setLiveCourseId] = useState("all"); // "all" or specific course id
-
-  const toggleLive = () => {
+  const toggleLive = async () => {
     if (isLive) {
-      setLiveClassStore(null);
+      await endLiveClass();
       setIsLive(false);
       toast({ title: "Live Class Ended 🔴", description: "Students will no longer see the live banner." });
     } else {
       if (!liveLink.trim()) { toast({ title: "Please add a link", description: "Paste your Zoom/YouTube Live link first." }); return; }
-      setLiveClassStore({
-        id: Date.now().toString(),
+      const { error } = await startLiveClass({
         title: liveTitle || "Live Class",
         link: liveLink,
-        startTime: new Date().toISOString(),
-        isLive: true,
-        courseId: liveCourseId === "all" ? undefined : liveCourseId,
+        courseId: liveCourseId === "all" ? null : liveCourseId,
       });
+      if (error) { toast({ title: "Could not start", description: error.message, variant: "destructive" }); return; }
       setIsLive(true);
       const targetLabel = liveCourseId === "all" ? "all students" : courseList.find((c) => c.id === liveCourseId)?.title || "selected course";
       toast({ title: "You're LIVE! 🟢", description: `Notification sent to ${targetLabel}.` });
     }
   };
 
-  const handleDeleteCourse = (id: string) => {
-    const updated = courseList.filter((c) => c.id !== id);
-    saveCourses(updated);
+  const handleDeleteCourse = async (id: string) => {
+    const { error } = await deleteCourse(id);
+    if (error) { toast({ title: "Delete failed", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Course Deleted 🗑️", description: "The course has been removed." });
   };
 
-  const handleUpdateCoursePrice = (id: string, price: number, isFree: boolean) => {
-    const updated = courseList.map((c) => c.id === id ? { ...c, price, isFree } : c);
-    saveCourses(updated);
+  const handleUpdateCoursePrice = async (id: string, price: number, isFree: boolean) => {
+    const { error } = await updateCoursePrice(id, price, isFree);
+    if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Price Updated 💰", description: isFree ? "Course set to Free." : `Price set to $${price}.` });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-navy border-b border-navy-light sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-3 group">
@@ -114,7 +130,6 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* Welcome */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/8 via-gold/5 to-primary/8" />
         <div className="container mx-auto px-4 py-6 relative">
@@ -124,7 +139,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-foreground animate-fade-in">Assalamu Alaikum, Ustadha! 🌙</h1>
-              <p className="text-sm text-muted-foreground mt-0.5 animate-fade-in" style={{ animationDelay: '0.1s' }}>Manage your courses and students</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Manage your courses and students</p>
             </div>
           </div>
         </div>
@@ -148,7 +163,7 @@ export default function AdminDashboard() {
             ))}
           </TabsList>
 
-          {/* ===== OVERVIEW ===== */}
+          {/* OVERVIEW */}
           <TabsContent value="overview" className="space-y-6 animate-fade-in">
             <div ref={statsRef} className="stagger-children grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
@@ -174,7 +189,6 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Recent students */}
             <Card className="border-border/50 overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="font-serif text-xl flex items-center gap-2">
@@ -222,7 +236,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* ===== COURSES ===== */}
+          {/* COURSES */}
           <TabsContent value="courses" className="animate-fade-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-2xl font-bold text-foreground">Your Courses</h2>
@@ -241,7 +255,6 @@ export default function AdminDashboard() {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.description}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <Badge variant="secondary" className="text-[10px]">📚 {c.lessons} lessons</Badge>
-                          <Badge variant="secondary" className="text-[10px]">👥 {c.students}</Badge>
                           <Badge className={`text-[10px] ${c.isFree ? "bg-primary/10 text-primary" : "bg-gold/10 text-gold"}`}>
                             {c.isFree ? "Free" : `$${c.price}`}
                           </Badge>
@@ -261,7 +274,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ===== ADD CONTENT ===== */}
+          {/* ADD CONTENT */}
           <TabsContent value="upload" className="animate-fade-in">
             <div className="max-w-2xl mx-auto">
               <div className="text-center mb-8">
@@ -279,7 +292,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ===== GO LIVE (with course targeting) ===== */}
+          {/* GO LIVE */}
           <TabsContent value="live" className="animate-fade-in">
             <div className="max-w-xl mx-auto">
               <div className="text-center mb-8">
@@ -301,20 +314,10 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label>Notify Students Of</Label>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={liveCourseId}
-                      onChange={(e) => setLiveCourseId(e.target.value)}
-                      disabled={isLive}
-                    >
+                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={liveCourseId} onChange={(e) => setLiveCourseId(e.target.value)} disabled={isLive}>
                       <option value="all">📢 All Students (Global)</option>
-                      {courseList.map((c) => (
-                        <option key={c.id} value={c.id}>📖 {c.title}</option>
-                      ))}
+                      {courseList.map((c) => (<option key={c.id} value={c.id}>📖 {c.title}</option>))}
                     </select>
-                    <p className="text-xs text-muted-foreground">
-                      {liveCourseId === "all" ? "Banner will show to everyone on the website." : "Banner will only show to students enrolled in this course."}
-                    </p>
                   </div>
                   <Button onClick={toggleLive} className={`w-full gap-2 text-base py-6 rounded-xl transition-all duration-500 ${isLive ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}>
                     <Radio className="h-5 w-5" />
@@ -325,7 +328,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ===== STUDENTS ===== */}
+          {/* STUDENTS */}
           <TabsContent value="students" className="animate-fade-in">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
               <h2 className="font-serif text-2xl font-bold text-foreground">All Students</h2>
@@ -376,9 +379,9 @@ export default function AdminDashboard() {
                                         type="button"
                                         title="Unenroll"
                                         className="ml-0.5 hover:text-destructive"
-                                        onClick={() => {
+                                        onClick={async () => {
                                           if (confirm(`Remove ${s.name} from "${course.title}"?`)) {
-                                            unenrollStudent(s.email, cid);
+                                            await teacherUnenroll(s.id, cid);
                                             toast({ title: "Unenrolled", description: `${s.name} removed from ${course.title}.` });
                                           }
                                         }}
@@ -405,8 +408,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-
-          {/* ===== SETTINGS ===== */}
+          {/* SETTINGS */}
           <TabsContent value="settings" className="animate-fade-in">
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="text-center mb-8">
@@ -416,7 +418,6 @@ export default function AdminDashboard() {
                 <h2 className="font-serif text-3xl font-bold text-foreground">Academy Settings</h2>
                 <p className="text-muted-foreground mt-2">Manage your profile and academy details</p>
               </div>
-
               <Card className="border-border/50 overflow-hidden">
                 <CardHeader><CardTitle className="font-serif text-lg flex items-center gap-2"><Image className="h-5 w-5 text-primary" /> Profile & Academy</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -432,18 +433,6 @@ export default function AdminDashboard() {
                     <Label>Bio / About You</Label>
                     <Textarea defaultValue={INSTRUCTOR.bio} rows={4} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Profile Image</Label>
-                    <div className="flex items-center gap-4">
-                      <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">A</div>
-                      <label className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-xl hover:bg-muted/50 transition-colors text-sm">
-                          <Image className="h-4 w-4" /> Change Photo
-                        </div>
-                        <input type="file" accept="image/*" className="hidden" onChange={() => toast({ title: "Photo Updated! 📸" })} />
-                      </label>
-                    </div>
-                  </div>
                   <Button variant="emerald" className="gap-2 rounded-xl" onClick={() => toast({ title: "Settings Saved! ✅" })}>
                     <Save className="h-4 w-4" /> Save Changes
                   </Button>
@@ -452,7 +441,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ===== HELP GUIDE ===== */}
+          {/* HELP */}
           <TabsContent value="guide" className="animate-fade-in">
             <div className="max-w-2xl mx-auto">
               <div className="text-center mb-8">
@@ -464,13 +453,10 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-4">
                 {[
-                  { title: "🔐 Login", steps: ["Go to website → 'Sign In'", "Email: afshan@elaf.com", "Password: elaf2024"] },
                   { title: "📖 Add Course", steps: ["Click 'Add Content' tab", "Click 'New Course'", "Fill name, subject, price", "Click 'Create Course'"] },
                   { title: "🎬 Add Video", steps: ["Upload video to YouTube", "Copy the YouTube link", "Click 'Add Lesson'", "Paste link and save"] },
-                  { title: "📄 Upload PDF", steps: ["Click 'Add Content' tab", "Click 'Upload PDF'", "Select PDF file from your device", "Choose which course it belongs to"] },
                   { title: "💰 Change Price", steps: ["Go to 'Courses' tab", "Click 'Edit Price' on any course", "Enter new price or toggle Free", "Click Save"] },
                   { title: "📺 Go Live", steps: ["Start Zoom/Google Meet", "Copy meeting link", "Go to 'Go Live' tab", "Choose which course to notify", "Paste link → 'Go Live Now'", "Click 'End' when done"] },
-                  
                   { title: "🗑️ Delete Course", steps: ["Go to 'Courses' tab", "Click 'Delete' on any course", "Course is removed immediately"] },
                 ].map((section, i) => (
                   <Card key={i} className="border-border/50 overflow-hidden hover-lift">
@@ -496,7 +482,7 @@ export default function AdminDashboard() {
   );
 }
 
-/* ========== EDIT PRICE DIALOG ========== */
+/* ========== EDIT PRICE ========== */
 function EditPriceDialog({ course, onSave }: { course: Course; onSave: (price: number, isFree: boolean) => void }) {
   const [open, setOpen] = useState(false);
   const [price, setPrice] = useState(course.price?.toString() || "0");
@@ -532,7 +518,7 @@ function EditPriceDialog({ course, onSave }: { course: Course; onSave: (price: n
   );
 }
 
-/* ========== ADD COURSE DIALOG ========== */
+/* ========== ADD COURSE ========== */
 function AddCourseDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -553,28 +539,15 @@ function AddCourseDialog() {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const priceNum = Number(price);
-    const newCourse: Course = {
-      id: `course-${Date.now()}`,
-      title,
-      description,
-      subject,
-      thumbnail: thumbnailPreview || "/placeholder.svg",
-      instructor: INSTRUCTOR.name,
+    const { error } = await createCourse({
+      title, description, subject, level,
+      price: Number(price),
       duration: duration || "TBD",
-      lessons: 0,
-      students: 0,
-      level,
-      isFree: priceNum === 0,
-      price: priceNum,
-      rating: 0,
-      units: [],
-    };
-    const courses = getCourses();
-    courses.push(newCourse);
-    saveCourses(courses);
+      thumbnail: thumbnailPreview || "/placeholder.svg",
+    });
+    if (error) { toast({ title: "Create failed", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Course Created! ✅", description: `"${title}" is now live.` });
     setOpen(false);
     setTitle(""); setDescription(""); setPrice("0"); setDuration(""); setThumbnailPreview("");
@@ -601,12 +574,7 @@ function AddCourseDialog() {
             <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
               {thumbnailPreview ? (
                 <img src={thumbnailPreview} alt="Preview" className="h-24 w-full object-cover rounded-lg" />
-              ) : (
-                <>
-                  <Image className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Click to upload thumbnail</p>
-                </>
-              )}
+              ) : (<><Image className="h-8 w-8 text-muted-foreground" /><p className="text-xs text-muted-foreground">Click to upload thumbnail</p></>)}
               <input type="file" accept="image/*" className="hidden" onChange={handleThumbnail} />
             </label>
           </div>
@@ -638,7 +606,7 @@ function AddCourseDialog() {
   );
 }
 
-/* ========== ADD LESSON DIALOG ========== */
+/* ========== ADD LESSON ========== */
 function AddLessonDialog({ courses }: { courses: Course[] }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -647,19 +615,12 @@ function AddLessonDialog({ courses }: { courses: Course[] }) {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [duration, setDuration] = useState("");
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!courseId) { toast({ title: "Please select a course" }); return; }
+    const { error } = await addLesson({ courseId, lessonTitle: title, youtubeUrl, duration: duration || "TBD" });
+    if (error) { toast({ title: "Add failed", description: error.message, variant: "destructive" }); return; }
     const course = courses.find((c) => c.id === courseId);
-    const unitId = course?.units[0]?.id || `unit-${Date.now()}`;
-
-    addLessonToCourse(courseId, unitId, {
-      id: `lesson-${Date.now()}`,
-      title,
-      youtubeUrl,
-      duration: duration || "TBD",
-    });
-
     toast({ title: "Lesson Added! ✅", description: `"${title}" added to ${course?.title}.` });
     setOpen(false);
     setTitle(""); setYoutubeUrl(""); setDuration(""); setCourseId("");
@@ -705,7 +666,7 @@ function AddLessonDialog({ courses }: { courses: Course[] }) {
   );
 }
 
-/* ========== UPLOAD PDF DIALOG ========== */
+/* ========== UPLOAD PDF (placeholder) ========== */
 function UploadPDFDialog({ courses }: { courses: Course[] }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -714,10 +675,7 @@ function UploadPDFDialog({ courses }: { courses: Course[] }) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.type !== "application/pdf") {
-        toast({ title: "Please select a PDF file", variant: "destructive" });
-        return;
-      }
+      if (file.type !== "application/pdf") { toast({ title: "Please select a PDF file", variant: "destructive" }); return; }
       setFileName(file.name);
     }
   };
@@ -751,19 +709,12 @@ function UploadPDFDialog({ courses }: { courses: Course[] }) {
               {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </div>
-          <div className="space-y-2">
-            <Label>PDF Title *</Label>
-            <Input placeholder="e.g., Tajweed Rules Handout" required />
-          </div>
+          <div className="space-y-2"><Label>PDF Title *</Label><Input placeholder="e.g., Tajweed Rules Handout" required /></div>
           <div className="space-y-2">
             <Label>Select PDF File *</Label>
             <label className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
               <FileUp className="h-10 w-10 text-muted-foreground" />
-              {fileName ? (
-                <p className="text-sm font-medium text-foreground">{fileName}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">Click to select PDF file</p>
-              )}
+              {fileName ? <p className="text-sm font-medium text-foreground">{fileName}</p> : <p className="text-sm text-muted-foreground">Click to select PDF file</p>}
               <input type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
             </label>
           </div>
@@ -777,23 +728,23 @@ function UploadPDFDialog({ courses }: { courses: Course[] }) {
   );
 }
 
-/* ========== ASSIGN COURSE DIALOG ========== */
-function AssignCourseDialog({ students, courses }: { students: import("@/lib/mock-data").Student[]; courses: Course[] }) {
+/* ========== ASSIGN COURSE ========== */
+function AssignCourseDialog({ students, courses }: { students: StudentRow[]; courses: Course[] }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [studentEmail, setStudentEmail] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [courseId, setCourseId] = useState("");
 
-  const handleAssign = (e: React.FormEvent) => {
+  const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentEmail || !courseId) return;
-    enrollStudent(studentEmail, courseId);
+    if (!studentId || !courseId) return;
+    const { error } = await teacherEnroll(studentId, courseId);
+    if (error) { toast({ title: "Assign failed", description: error.message, variant: "destructive" }); return; }
     const courseName = courses.find((c) => c.id === courseId)?.title || "Course";
-    const studentName = students.find((s) => s.email === studentEmail)?.name || studentEmail;
+    const studentName = students.find((s) => s.id === studentId)?.name || "Student";
     toast({ title: "Course Assigned! ✅", description: `"${courseName}" assigned to ${studentName}.` });
     setOpen(false);
-    setStudentEmail("");
-    setCourseId("");
+    setStudentId(""); setCourseId("");
   };
 
   return (
@@ -806,9 +757,9 @@ function AssignCourseDialog({ students, courses }: { students: import("@/lib/moc
         <form onSubmit={handleAssign} className="space-y-4 mt-2">
           <div className="space-y-2">
             <Label>Student *</Label>
-            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={studentEmail} onChange={(e) => setStudentEmail(e.target.value)} required>
+            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={studentId} onChange={(e) => setStudentId(e.target.value)} required>
               <option value="">Select a student...</option>
-              {students.map((s) => <option key={s.id} value={s.email}>{s.name} ({s.email})</option>)}
+              {students.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.email})</option>)}
             </select>
           </div>
           <div className="space-y-2">
@@ -828,28 +779,25 @@ function AssignCourseDialog({ students, courses }: { students: import("@/lib/moc
   );
 }
 
-/* ========== MANAGE LESSONS DIALOG ========== */
+/* ========== MANAGE LESSONS ========== */
 function ManageLessonsDialog({ course }: { course: Course }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
-  const handleRemove = (lessonId: string, title: string) => {
+  const handleRemove = async (lessonId: string, title: string) => {
     if (!confirm(`Remove lesson "${title}"? This cannot be undone.`)) return;
-    removeLessonFromCourse(course.id, lessonId);
+    const { error } = await removeLesson(lessonId);
+    if (error) { toast({ title: "Remove failed", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Lesson Removed 🗑️", description: `"${title}" was removed.` });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 rounded-lg">
-          <Edit className="h-3 w-3" /> Manage Lessons
-        </Button>
+        <Button variant="outline" size="sm" className="gap-1 rounded-lg"><Edit className="h-3 w-3" /> Manage Lessons</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-serif">Manage Lessons — {course.title}</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle className="font-serif">Manage Lessons — {course.title}</DialogTitle></DialogHeader>
         <div className="space-y-4 mt-2">
           {course.units.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">No lessons yet. Add one from "Add Content".</p>
@@ -864,12 +812,7 @@ function ManageLessonsDialog({ course }: { course: Course }) {
                     <p className="text-sm font-medium truncate">{l.title}</p>
                     <p className="text-[11px] text-muted-foreground">{l.duration}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0"
-                    onClick={() => handleRemove(l.id, l.title)}
-                  >
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0" onClick={() => handleRemove(l.id, l.title)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
