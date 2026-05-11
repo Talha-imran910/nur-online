@@ -1,15 +1,23 @@
-import { getCourses } from "@/lib/store";
+import { useEffect, useState } from "react";
 import CourseCard from "@/components/CourseCard";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-animations";
+import { fetchPublishedCourses, subscribeToTables, type Course } from "@/lib/db";
 
 export default function FeaturedCourses() {
   const titleRef = useScrollReveal();
   const gridRef = useScrollReveal(0.1);
+  const [featured, setFeatured] = useState<Course[]>([]);
 
-  const featured = getCourses().slice(0, 3);
+  useEffect(() => {
+    let alive = true;
+    const load = () => fetchPublishedCourses().then((c) => alive && setFeatured(c.slice(0, 3)));
+    load();
+    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
+    return () => { alive = false; unsub(); };
+  }, []);
 
   return (
     <section className="py-20 bg-secondary/30 islamic-overlay relative">
@@ -21,11 +29,13 @@ export default function FeaturedCourses() {
           </h2>
         </div>
 
-        <div ref={gridRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featured.map((c) => (
-            <CourseCard key={c.id} course={c} />
-          ))}
-        </div>
+        {featured.length === 0 ? (
+          <p className="text-center text-muted-foreground">No published courses yet.</p>
+        ) : (
+          <div ref={gridRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featured.map((c) => (<CourseCard key={c.id} course={c} />))}
+          </div>
+        )}
 
         <div className="mt-10 text-center animate-fade-in">
           <Link to="/courses">

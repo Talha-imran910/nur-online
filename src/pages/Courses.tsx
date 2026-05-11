@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
 import { subjects } from "@/lib/mock-data";
-import { getCourses, onStoreUpdate } from "@/lib/store";
+import { fetchPublishedCourses, subscribeToTables, type Course } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -14,13 +14,18 @@ import { ArabicQuote } from "@/components/IslamicDecorations";
 export default function Courses() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [, setTick] = useState(0);
+  const [courses, setCourses] = useState<Course[]>([]);
   const activeSubject = searchParams.get("subject") || "all";
   const gridRef = useScrollReveal(0.1);
 
-  useEffect(() => onStoreUpdate(() => setTick((t) => t + 1)), []);
+  useEffect(() => {
+    let alive = true;
+    const load = () => fetchPublishedCourses().then((c) => alive && setCourses(c));
+    load();
+    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
+    return () => { alive = false; unsub(); };
+  }, []);
 
-  const courses = getCourses();
   const filtered = useMemo(() => {
     let result = courses;
     if (activeSubject !== "all") result = result.filter((c) => c.subject === activeSubject);
@@ -31,7 +36,6 @@ export default function Courses() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-
       <section className="gradient-hero py-16 px-4 relative overflow-hidden islamic-overlay">
         <div className="container mx-auto text-center relative z-10">
           <ArabicQuote text="اقْرَأْ" className="!text-gold/30 mb-2" />
@@ -39,7 +43,6 @@ export default function Courses() {
           <p className="mt-4 text-cream/60 max-w-xl mx-auto animate-slide-up" style={{ animationDelay: "0.1s" }}>
             Explore our collection of authentic Quranic courses by Ustadha Afshan Imran
           </p>
-
           <div className="mt-8 max-w-md mx-auto relative animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search courses..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-background/90 border-none" />
@@ -70,7 +73,6 @@ export default function Courses() {
           )}
         </div>
       </section>
-
       <Footer />
     </div>
   );
