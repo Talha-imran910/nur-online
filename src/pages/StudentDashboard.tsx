@@ -84,7 +84,7 @@ export default function StudentDashboard() {
           <p className="text-muted-foreground mt-1">Continue your journey with the Quran ✨</p>
         </div>
 
-        <div ref={statsRef} className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
             { icon: BookOpen, label: "Enrolled", value: enrolledCourses.length, color: "text-primary" },
             { icon: PlayCircle, label: "In Progress", value: enrolledCourses.length - completedCount, color: "text-gold" },
@@ -98,7 +98,11 @@ export default function StudentDashboard() {
           ))}
         </div>
 
-        {enrolledCourses.length === 0 && (
+        {loading ? (
+          <div className="text-center py-12 glass-card rounded-xl mb-8 text-muted-foreground">
+            Loading your courses...
+          </div>
+        ) : enrolledCourses.length === 0 && (
           <div className="text-center py-12 glass-card rounded-xl mb-8">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-serif text-xl font-bold text-foreground mb-2">No courses yet</h3>
@@ -107,10 +111,10 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {enrolledCourses.length > 0 && (
+        {!loading && enrolledCourses.length > 0 && (
           <>
             <h2 className="font-serif text-2xl font-bold text-foreground mb-4">My Courses</h2>
-            <div ref={coursesRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {enrolledCourses.map((course) => {
                 const progress = progressMap[course.id] || 0;
                 return (
@@ -140,7 +144,7 @@ export default function StudentDashboard() {
         {assignments.length > 0 && (
           <>
             <h2 className="font-serif text-2xl font-bold text-foreground mb-4">Assignments</h2>
-            <div ref={assignRef} className="stagger-children space-y-3">
+            <div className="space-y-3">
               {assignments.map((a) => (
                 <AssignmentSubmission key={a.id} assignment={a} />
               ))}
