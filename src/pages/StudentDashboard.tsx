@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, PlayCircle, CheckCircle, LogOut } from "lucide-react";
-import { useScrollReveal } from "@/hooks/use-animations";
 import elafLogo from "@/assets/elaf-logo.png";
 import AssignmentSubmission from "@/components/AssignmentSubmission";
 import LiveClassBanner from "@/components/LiveClassBanner";
@@ -20,10 +19,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 export default function StudentDashboard() {
-  const statsRef = useScrollReveal();
-  const coursesRef = useScrollReveal(0.1);
-  const assignRef = useScrollReveal(0.1);
-
   const [currentUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("elaf_user") || "{}"); } catch { return {}; }
   });
@@ -31,22 +26,33 @@ export default function StudentDashboard() {
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !alive) return;
+      if (!alive) return;
+      if (!user) {
+        setAllCourses([]);
+        setEnrolledIds([]);
+        setProgressMap({});
+        setAssignments([]);
+        setLoading(false);
+        return;
+      }
       const [courses, enrolls] = await Promise.all([
         fetchPublishedCourses(),
         fetchMyEnrollments(user.id),
       ]);
       if (!alive) return;
+      console.log("[StudentDashboard] courses:", courses, "enrollments:", enrolls);
       setAllCourses(courses);
       const ids = enrolls.map((e) => e.courseId);
       setEnrolledIds(ids);
       setProgressMap(Object.fromEntries(enrolls.map((e) => [e.courseId, e.progress])));
       setAssignments(await fetchAssignmentsForCourses(ids));
+      setLoading(false);
     };
     load();
     const unsub = subscribeToTables(["courses", "units", "lessons", "enrollments", "assignments"], load);
