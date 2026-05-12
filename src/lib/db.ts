@@ -115,7 +115,12 @@ export async function fetchPublishedCourses(): Promise<Course[]> {
     .select("*")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
-  if (error || !courses) return [];
+  console.log("[db.fetchPublishedCourses] courses:", courses || [], "error:", error);
+  if (error) {
+    console.error("[db.fetchPublishedCourses] Supabase error:", error.message);
+    return [];
+  }
+  if (!courses) return [];
   return Promise.all(courses.map(async (c) => mapCourseRow(c, await fetchUnitsForCourse(c.id))));
 }
 
@@ -241,7 +246,12 @@ export async function fetchMyEnrollments(userId: string) {
     .from("enrollments")
     .select("course_id, progress")
     .eq("student_id", userId);
-  if (error || !data) return [];
+  console.log("[db.fetchMyEnrollments] user:", userId, "enrollments:", data || [], "error:", error);
+  if (error) {
+    console.error("[db.fetchMyEnrollments] Supabase error:", error.message);
+    return [];
+  }
+  if (!data) return [];
   return data.map((e: any) => ({ courseId: e.course_id, progress: e.progress || 0 }));
 }
 
