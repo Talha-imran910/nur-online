@@ -32,8 +32,8 @@ export default function FeaturedCourses() {
         {featured.length === 0 ? (
           <p className="text-center text-muted-foreground">No published courses yet.</p>
         ) : (
-          <div ref={gridRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featured.map((c) => (<CourseCard key={c.id} course={c} />))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featured.map((c) => (<CourseCard key={c.id} course={c as any} />))}
           </div>
         )}
 
