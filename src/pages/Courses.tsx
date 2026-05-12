@@ -2,37 +2,30 @@ import { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchPublishedCourses, subscribeToTables, type Course } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 
 export default function Courses() {
   const [search, setSearch] = useState("");
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     async function load() {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false });
-      console.log("[Courses] fetched:", { data, error });
+      const data = await fetchPublishedCourses();
+      console.log("[Courses] published courses:", data);
       if (!alive) return;
-      if (error) setError(error.message);
-      setCourses(data || []);
+      setError(null);
+      setCourses(data);
       setLoading(false);
     }
     load();
-    const channel = supabase
-      .channel("rt-courses-page")
-      .on("postgres_changes", { event: "*", schema: "public", table: "courses" }, () => load())
-      .subscribe();
-    return () => { alive = false; supabase.removeChannel(channel); };
+    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
+    return () => { alive = false; unsub(); };
   }, []);
 
   const filtered = useMemo(() => {

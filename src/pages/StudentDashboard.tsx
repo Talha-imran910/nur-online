@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, PlayCircle, CheckCircle, LogOut } from "lucide-react";
-import { useScrollReveal } from "@/hooks/use-animations";
 import elafLogo from "@/assets/elaf-logo.png";
 import AssignmentSubmission from "@/components/AssignmentSubmission";
 import LiveClassBanner from "@/components/LiveClassBanner";
@@ -20,10 +19,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 export default function StudentDashboard() {
-  const statsRef = useScrollReveal();
-  const coursesRef = useScrollReveal(0.1);
-  const assignRef = useScrollReveal(0.1);
-
   const [currentUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("elaf_user") || "{}"); } catch { return {}; }
   });
@@ -31,22 +26,33 @@ export default function StudentDashboard() {
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !alive) return;
+      if (!alive) return;
+      if (!user) {
+        setAllCourses([]);
+        setEnrolledIds([]);
+        setProgressMap({});
+        setAssignments([]);
+        setLoading(false);
+        return;
+      }
       const [courses, enrolls] = await Promise.all([
         fetchPublishedCourses(),
         fetchMyEnrollments(user.id),
       ]);
       if (!alive) return;
+      console.log("[StudentDashboard] courses:", courses, "enrollments:", enrolls);
       setAllCourses(courses);
       const ids = enrolls.map((e) => e.courseId);
       setEnrolledIds(ids);
       setProgressMap(Object.fromEntries(enrolls.map((e) => [e.courseId, e.progress])));
       setAssignments(await fetchAssignmentsForCourses(ids));
+      setLoading(false);
     };
     load();
     const unsub = subscribeToTables(["courses", "units", "lessons", "enrollments", "assignments"], load);
@@ -78,7 +84,7 @@ export default function StudentDashboard() {
           <p className="text-muted-foreground mt-1">Continue your journey with the Quran ✨</p>
         </div>
 
-        <div ref={statsRef} className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
             { icon: BookOpen, label: "Enrolled", value: enrolledCourses.length, color: "text-primary" },
             { icon: PlayCircle, label: "In Progress", value: enrolledCourses.length - completedCount, color: "text-gold" },
@@ -92,7 +98,11 @@ export default function StudentDashboard() {
           ))}
         </div>
 
-        {enrolledCourses.length === 0 && (
+        {loading ? (
+          <div className="text-center py-12 glass-card rounded-xl mb-8 text-muted-foreground">
+            Loading your courses...
+          </div>
+        ) : enrolledCourses.length === 0 && (
           <div className="text-center py-12 glass-card rounded-xl mb-8">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-serif text-xl font-bold text-foreground mb-2">No courses yet</h3>
@@ -101,10 +111,10 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {enrolledCourses.length > 0 && (
+        {!loading && enrolledCourses.length > 0 && (
           <>
             <h2 className="font-serif text-2xl font-bold text-foreground mb-4">My Courses</h2>
-            <div ref={coursesRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {enrolledCourses.map((course) => {
                 const progress = progressMap[course.id] || 0;
                 return (
@@ -134,7 +144,7 @@ export default function StudentDashboard() {
         {assignments.length > 0 && (
           <>
             <h2 className="font-serif text-2xl font-bold text-foreground mb-4">Assignments</h2>
-            <div ref={assignRef} className="stagger-children space-y-3">
+            <div className="space-y-3">
               {assignments.map((a) => (
                 <AssignmentSubmission key={a.id} assignment={a} />
               ))}
