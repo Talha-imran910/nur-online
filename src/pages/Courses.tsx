@@ -1,37 +1,44 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
-import { subjects } from "@/lib/mock-data";
-import { fetchPublishedCourses, subscribeToTables, type Course } from "@/lib/db";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useScrollReveal } from "@/hooks/use-animations";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 
 export default function Courses() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [courses, setCourses] = useState<Course[]>([]);
-  const activeSubject = searchParams.get("subject") || "all";
-  const gridRef = useScrollReveal(0.1);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    const load = () => fetchPublishedCourses().then((c) => alive && setCourses(c));
+    async function load() {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
+      console.log("[Courses] fetched:", { data, error });
+      if (!alive) return;
+      if (error) setError(error.message);
+      setCourses(data || []);
+      setLoading(false);
+    }
     load();
-    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
-    return () => { alive = false; unsub(); };
+    const channel = supabase
+      .channel("rt-courses-page")
+      .on("postgres_changes", { event: "*", schema: "public", table: "courses" }, () => load())
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(channel); };
   }, []);
 
   const filtered = useMemo(() => {
-    let result = courses;
-    if (activeSubject !== "all") result = result.filter((c) => c.subject === activeSubject);
-    if (search) result = result.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()));
-    return result;
-  }, [activeSubject, search, courses]);
+    if (!search) return courses;
+    return courses.filter((c) => c.title?.toLowerCase().includes(search.toLowerCase()));
+  }, [search, courses]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -52,22 +59,17 @@ export default function Courses() {
 
       <section className="flex-1 py-12 px-4">
         <div className="container mx-auto">
-          <div className="flex flex-wrap gap-2 mb-8">
-            <Button variant={activeSubject === "all" ? "default" : "outline"} size="sm" onClick={() => setSearchParams({})}>All</Button>
-            {subjects.map((s) => (
-              <Button key={s.id} variant={activeSubject === s.id ? "default" : "outline"} size="sm" onClick={() => setSearchParams({ subject: s.id })}>
-                {s.icon} {s.name}
-              </Button>
-            ))}
-          </div>
-
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p className="text-center text-muted-foreground py-12">Loading courses...</p>
+          ) : error ? (
+            <p className="text-center text-destructive py-12">Error: {error}</p>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <p className="font-serif text-2xl">No courses found</p>
-              <p className="mt-2">Try adjusting your filters or search term.</p>
+              <p className="mt-2">Try a different search term.</p>
             </div>
           ) : (
-            <div ref={gridRef} className="stagger-children grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((c) => (<CourseCard key={c.id} course={c} />))}
             </div>
           )}
