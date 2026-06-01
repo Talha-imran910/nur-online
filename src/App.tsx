@@ -14,6 +14,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import RouteGuard from "./components/RouteGuard";
 
 const queryClient = new QueryClient();
 
@@ -29,11 +30,11 @@ const App = () => (
           <Route path="/courses/:courseId" element={<CourseDetail />} />
           <Route path="/player/:courseId" element={<CoursePlayer />} />
           <Route path="/about" element={<About />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<StudentDashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<RouteGuard mode="guest"><Login /></RouteGuard>} />
+          <Route path="/register" element={<RouteGuard mode="guest"><Register /></RouteGuard>} />
+          <Route path="/dashboard" element={<RouteGuard mode="student"><StudentDashboard /></RouteGuard>} />
+          <Route path="/admin" element={<RouteGuard mode="teacher"><AdminDashboard /></RouteGuard>} />
+          <Route path="/profile" element={<RouteGuard mode="auth"><Profile /></RouteGuard>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
