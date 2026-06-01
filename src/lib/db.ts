@@ -268,19 +268,31 @@ export async function unenroll(userId: string, courseId: string) {
 
 // ---------- Students (teacher view) ----------
 export async function fetchAllStudents(): Promise<StudentRow[]> {
-  // Pull all students rows + their enrollments
-  const { data: rows } = await supabase.from("students").select("*").order("name", { ascending: true });
-  if (!rows) return [];
-  const ids = rows.map((r: any) => r.id);
+  // Find teacher user_ids so we can exclude them from the student list
+  const { data: teacherRoles } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "teacher");
+  const teacherIds = new Set((teacherRoles || []).map((r: any) => r.user_id));
+
+  const { data: rows, error } = await supabase
+    .from("students")
+    .select("*")
+    .order("name", { ascending: true });
+  console.log("[db.fetchAllStudents] rows:", rows || [], "error:", error, "teacherIds:", [...teacherIds]);
+  if (error || !rows) return [];
+
+  const filtered = rows.filter((r: any) => !teacherIds.has(r.id));
+  const ids = filtered.map((r: any) => r.id);
   const { data: enrolls } = ids.length
     ? await supabase.from("enrollments").select("student_id, course_id, progress").in("student_id", ids)
     : { data: [] as any[] };
-  return rows.map((r: any) => {
+  return filtered.map((r: any) => {
     const myEnrolls = (enrolls || []).filter((e: any) => e.student_id === r.id);
     return {
       id: r.id,
-      name: r.name,
-      email: r.email,
+      name: r.name || r.email || "Student",
+      email: r.email || "",
       enrolledCourses: myEnrolls.map((e: any) => e.course_id),
       progress: Object.fromEntries(myEnrolls.map((e: any) => [e.course_id, e.progress || 0])),
       joinedDate: (r.created_at || "").split("T")[0] || "",
