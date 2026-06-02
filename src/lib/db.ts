@@ -87,7 +87,7 @@ function mapLesson(row: any): Lesson {
   };
 }
 
-function mapCourseRow(row: any, units: Unit[] = []): Course {
+function mapCourseRow(row: any, units: Unit[] = [], studentsCount = 0): Course {
   const lessonCount = units.reduce((acc, u) => acc + u.lessons.length, 0);
   return {
     id: row.id,
@@ -103,9 +103,17 @@ function mapCourseRow(row: any, units: Unit[] = []): Course {
     isPublished: row.is_published !== false,
     units,
     lessons: lessonCount,
-    students: 0,
+    students: studentsCount,
     instructor: INSTRUCTOR_NAME,
   };
+}
+
+async function countEnrollments(courseId: string): Promise<number> {
+  const { count } = await supabase
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", courseId);
+  return count || 0;
 }
 
 // ---------- Courses ----------
@@ -121,7 +129,12 @@ export async function fetchPublishedCourses(): Promise<Course[]> {
     return [];
   }
   if (!courses) return [];
-  return Promise.all(courses.map(async (c) => mapCourseRow(c, await fetchUnitsForCourse(c.id))));
+  return Promise.all(courses.map(async (c) => mapCourseRow(c, await fetchUnitsForCourse(c.id), await countEnrollments(c.id))));
+}
+
+export async function fetchSubjects(): Promise<{ id: string; name: string }[]> {
+  const { data } = await supabase.from("subjects").select("id, name").order("name");
+  return (data || []).map((s: any) => ({ id: s.id, name: s.name }));
 }
 
 export async function fetchAllCourses(): Promise<Course[]> {
