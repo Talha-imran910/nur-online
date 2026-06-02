@@ -49,6 +49,19 @@ export default function Register() {
       await supabase
         .from("students")
         .upsert({ id: data.user.id, name: cleanName, email: cleanEmail }, { onConflict: "id" });
+
+      // Auto-enroll the new student in all free published courses
+      const { data: freeCourses } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("is_free", true)
+        .eq("is_published", true);
+      if (freeCourses && freeCourses.length > 0) {
+        await supabase.from("enrollments").upsert(
+          freeCourses.map((c: any) => ({ student_id: data.user!.id, course_id: c.id, progress: 0 })),
+          { onConflict: "student_id,course_id" }
+        );
+      }
     }
 
     localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: cleanEmail, name: cleanName, phone: phone.trim() }));
