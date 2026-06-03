@@ -90,7 +90,12 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-8 space-y-5 shadow-elegant">
-            <div className="space-y-2">
+            {currentEmail && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Signed in as <span className="text-foreground font-medium">{currentEmail}</span></span>
+                <button type="button" onClick={handleSignOut} className="text-primary font-medium hover:underline">Sign out</button>
+              </div>
+            )}
               <Label htmlFor="email">Email Address</Label>
               <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" required />
             </div>
