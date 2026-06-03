@@ -525,7 +525,14 @@ function AddCourseDialog() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [subject, setSubject] = useState("tajweed");
+  const [subject, setSubject] = useState("");
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    fetchSubjects().then((s) => {
+      setSubjects(s);
+      if (s.length && !subject) setSubject(s[0].id);
+    });
+  }, []);
   const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [price, setPrice] = useState("0");
   const [duration, setDuration] = useState("");
