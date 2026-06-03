@@ -15,6 +15,7 @@ import {
   teacherEnroll,
   teacherUnenroll,
   subscribeToTables,
+  fetchSubjects,
   type Course,
   type StudentRow,
 } from "@/lib/db";
@@ -524,7 +525,14 @@ function AddCourseDialog() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [subject, setSubject] = useState("tajweed");
+  const [subject, setSubject] = useState("");
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    fetchSubjects().then((s) => {
+      setSubjects(s);
+      if (s.length && !subject) setSubject(s[0].id);
+    });
+  }, []);
   const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [price, setPrice] = useState("0");
   const [duration, setDuration] = useState("");
@@ -582,7 +590,8 @@ function AddCourseDialog() {
             <div className="space-y-2">
               <Label>Subject</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={subject} onChange={(e) => setSubject(e.target.value)}>
-                <option value="tajweed">Tajweed</option><option value="tafseer">Tafseer</option><option value="nazra">Nazra Quran</option><option value="qaida">Qaida & Basics</option><option value="memorization">Memorization</option><option value="tarbiyat">Spiritual Tarbiyat</option>
+                {subjects.length === 0 && <option value="">No subjects — seed them first</option>}
+                {subjects.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
               </select>
             </div>
             <div className="space-y-2">
