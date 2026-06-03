@@ -33,11 +33,9 @@ export default function RouteGuard({
 
       switch (mode) {
         case "guest":
-          if (user) { 
-            setRedirectTo(teacher ? "/admin" : "/dashboard"); 
-            setState("redirect"); 
-          }
-          else setState("allow");
+          // Always allow showing /login and /register, even if a stale session
+          // exists. The page itself offers a "sign out" option.
+          setState("allow");
           break;
         case "auth":
           if (!user) { 
