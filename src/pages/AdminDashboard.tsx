@@ -15,6 +15,7 @@ import {
   teacherEnroll,
   teacherUnenroll,
   subscribeToTables,
+  fetchSubjects,
   type Course,
   type StudentRow,
 } from "@/lib/db";
