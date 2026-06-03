@@ -17,6 +17,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -29,7 +30,15 @@ export default function Login() {
         setRememberMe(true);
       }
     } catch {}
+    supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? null));
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("elaf_user");
+    setCurrentEmail(null);
+    toast({ title: "Signed out", description: "You can now sign in with another account." });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +90,12 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-8 space-y-5 shadow-elegant">
+            {currentEmail && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Signed in as <span className="text-foreground font-medium">{currentEmail}</span></span>
+                <button type="button" onClick={handleSignOut} className="text-primary font-medium hover:underline">Sign out</button>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" required />
