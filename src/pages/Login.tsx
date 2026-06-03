@@ -17,6 +17,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -29,7 +30,15 @@ export default function Login() {
         setRememberMe(true);
       }
     } catch {}
+    supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? null));
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("elaf_user");
+    setCurrentEmail(null);
+    toast({ title: "Signed out", description: "You can now sign in with another account." });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
