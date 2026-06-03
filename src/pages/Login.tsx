@@ -96,6 +96,7 @@ export default function Login() {
                 <button type="button" onClick={handleSignOut} className="text-primary font-medium hover:underline">Sign out</button>
               </div>
             )}
+            <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" required />
             </div>
