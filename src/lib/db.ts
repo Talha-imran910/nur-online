@@ -184,7 +184,7 @@ export async function createCourse(input: {
   price: number;
   duration: string;
 }) {
-  const id = `course-${Date.now()}`;
+  const id = (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
   const { error } = await supabase.from("courses").insert({
     id,
     title: input.title,
