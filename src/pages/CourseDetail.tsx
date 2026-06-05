@@ -72,11 +72,10 @@ export default function CourseDetail() {
     if (!currentUser) { navigate("/register"); return; }
 
     if (!course.isFree && course.price > 0) {
-      const whatsappNumber = "923305014489";
-      const message = encodeURIComponent(
+      const { whatsappUrl } = await import("@/lib/contact");
+      const url = whatsappUrl(
         `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
       );
-      const url = `https://wa.me/${whatsappNumber}?text=${message}`;
       const win = window.open(url, "_blank", "noopener,noreferrer");
       if (!win) {
         try { (window.top || window).location.href = url; } catch { window.location.href = url; }
