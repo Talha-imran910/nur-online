@@ -1,9 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { subjects, INSTRUCTOR } from "@/lib/mock-data";
 import { fetchCourseById, enrollInCourse, subscribeToTables, type Course } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_URL } from "@/lib/contact";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
@@ -72,11 +74,10 @@ export default function CourseDetail() {
     if (!currentUser) { navigate("/register"); return; }
 
     if (!course.isFree && course.price > 0) {
-      const whatsappNumber = "923305014489";
-      const message = encodeURIComponent(
+      const { whatsappUrl } = await import("@/lib/contact");
+      const url = whatsappUrl(
         `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
       );
-      const url = `https://wa.me/${whatsappNumber}?text=${message}`;
       const win = window.open(url, "_blank", "noopener,noreferrer");
       if (!win) {
         try { (window.top || window).location.href = url; } catch { window.location.href = url; }
@@ -98,6 +99,20 @@ export default function CourseDetail() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>{course.title} — Elaf-ul-Quran Academy</title>
+        <meta name="description" content={course.description.slice(0, 160)} />
+        <link rel="canonical" href={`${SITE_URL}/courses/${course.id}`} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={`${course.title} — Elaf-ul-Quran Academy`} />
+        <meta property="og:description" content={course.description.slice(0, 200)} />
+        <meta property="og:url" content={`${SITE_URL}/courses/${course.id}`} />
+        <meta property="og:image" content={course.thumbnail || `${SITE_URL}/og-image.jpg`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={course.title} />
+        <meta name="twitter:description" content={course.description.slice(0, 200)} />
+        <meta name="twitter:image" content={course.thumbnail || `${SITE_URL}/og-image.jpg`} />
+      </Helmet>
       <Navbar />
       <section className="relative overflow-hidden islamic-overlay">
         <div className="absolute inset-0 z-0">
