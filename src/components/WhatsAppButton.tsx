@@ -1,18 +1,16 @@
 import { MessageCircle } from "lucide-react";
+import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/contact";
 
-const WHATSAPP_NUMBER = "923305014489";
 const MESSAGE = "Assalamu Alaikum! I'm interested in Quran courses at Elaf-ul-Quran Academy.";
 
 export default function WhatsAppButton() {
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(MESSAGE)}`;
+  if (!WHATSAPP_NUMBER) return null;
+  const url = whatsappUrl(MESSAGE);
 
-  // Use window.open + break out of iframe so the wa.me redirect to api.whatsapp.com
-  // doesn't get blocked by X-Frame-Options (ERR_BLOCKED_BY_RESPONSE) inside preview iframes.
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     const win = window.open(url, "_blank", "noopener,noreferrer");
     if (!win) {
-      // Popup blocked → fall back to top-level navigation
       try { (window.top || window).location.href = url; } catch { window.location.href = url; }
     }
   };
