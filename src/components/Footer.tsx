@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import elafLogo from "@/assets/elaf-logo.png";
 import islamicDivider from "@/assets/islamic-divider.png";
+import { whatsappUrl } from "@/lib/contact";
 
 const SOCIAL_LINKS = [
-  { label: "WhatsApp", emoji: "💬", href: "https://wa.me/923305014489?text=Assalamu%20Alaikum!" },
+  { label: "WhatsApp", emoji: "💬", href: whatsappUrl("Assalamu Alaikum!") },
   { label: "YouTube", emoji: "📺", href: "https://youtube.com/@elafulquran" },
   { label: "Facebook", emoji: "📘", href: "https://facebook.com/elafulquran" },
   { label: "Instagram", emoji: "📸", href: "https://instagram.com/elafulquran" },
