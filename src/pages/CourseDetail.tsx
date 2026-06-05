@@ -1,9 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { subjects, INSTRUCTOR } from "@/lib/mock-data";
 import { fetchCourseById, enrollInCourse, subscribeToTables, type Course } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_URL } from "@/lib/contact";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
