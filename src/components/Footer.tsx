@@ -75,7 +75,7 @@ export default function Footer() {
               <li className="flex items-center gap-2">⏰ Flexible Timings</li>
               <li>
                 <a
-                  href="https://wa.me/923305014489"
+                  href={whatsappUrl("Assalamu Alaikum!")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-full px-4 py-2 mt-2 text-xs font-medium transition-all duration-300 hover:scale-105"
