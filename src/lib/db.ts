@@ -217,6 +217,7 @@ export async function addLesson(input: {
   youtubeUrl: string;
   duration: string;
 }) {
+  const uuid = () => (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
   // Find or create a unit for the course
   let unitId: string | null = null;
   const { data: existing } = await supabase
@@ -228,7 +229,7 @@ export async function addLesson(input: {
   if (existing && existing.length > 0) {
     unitId = existing[0].id;
   } else {
-    const newUnitId = `unit-${Date.now()}`;
+    const newUnitId = uuid();
     const { error } = await supabase.from("units").insert({
       id: newUnitId,
       course_id: input.courseId,
@@ -240,7 +241,7 @@ export async function addLesson(input: {
   }
 
   return supabase.from("lessons").insert({
-    id: `lesson-${Date.now()}`,
+    id: uuid(),
     unit_id: unitId,
     title: input.lessonTitle,
     youtube_url: input.youtubeUrl,
