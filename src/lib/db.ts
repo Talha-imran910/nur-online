@@ -343,9 +343,11 @@ export async function fetchLiveClass(): Promise<LiveClass | null> {
 }
 
 export async function startLiveClass(input: { title: string; link: string; courseId?: string | null }) {
-  // Stop any active live first
-  await supabase.from("live_class").update({ is_live: false }).eq("is_live", true);
+  // Clear any previous live rows entirely to avoid PK / unique conflicts
+  await supabase.from("live_class").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const id = (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
   return supabase.from("live_class").insert({
+    id,
     title: input.title,
     link: input.link,
     start_time: new Date().toISOString(),
