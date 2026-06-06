@@ -71,30 +71,23 @@ export default function CourseDetail() {
   const toggleUnit = (id: string) => setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
   const handleEnroll = async () => {
-    if (!currentUser) { navigate("/register"); return; }
-
-    if (!course.isFree && course.price > 0) {
-      const { whatsappUrl } = await import("@/lib/contact");
-      const url = whatsappUrl(
-        `Assalamu Alaikum! I want to enroll in "${course.title}" (${course.price} USD). My name: ${currentUser.name}, Email: ${currentUser.email}`
-      );
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) {
-        try { (window.top || window).location.href = url; } catch { window.location.href = url; }
-      }
-      toast({ title: "Opening WhatsApp 💬", description: "Complete your enrollment by sending the message." });
-      return;
+    const { whatsappUrl } = await import("@/lib/contact");
+    const who = currentUser ? ` My name: ${currentUser.name}, Email: ${currentUser.email}.` : "";
+    const priceLine = course.isFree ? "(Free course)" : `(${course.price} USD)`;
+    const url = whatsappUrl(
+      `Assalamu Alaikum! I am interested in enrolling in "${course.title}" ${priceLine} at Elaf-ul-Quran Academy.${who} Please guide me with the next steps. JazakAllah Khair.`
+    );
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      try { (window.top || window).location.href = url; } catch { window.location.href = url; }
     }
+    toast({ title: "Opening WhatsApp 💬", description: "Send the message to confirm enrollment." });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
-    const { error } = await enrollInCourse(user.id, course.id);
-    if (error) {
-      toast({ title: "Enrollment failed", description: error.message, variant: "destructive" });
-      return;
+    // Also auto-enroll silently if logged in & free, so dashboard shows it
+    if (currentUser && course.isFree) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await enrollInCourse(user.id, course.id);
     }
-    toast({ title: "Enrolled Successfully! 🎉", description: `You're now enrolled in "${course.title}".` });
-    navigate("/dashboard");
   };
 
   return (
