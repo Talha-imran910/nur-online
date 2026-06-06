@@ -7,8 +7,9 @@
  */
 const ENV_NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined)?.trim();
 
-// Fallback is intentionally NOT the real number — keeps source clean.
-export const WHATSAPP_NUMBER = ENV_NUMBER && ENV_NUMBER.length > 0 ? ENV_NUMBER : "";
+// Fallback ensures the button always opens a real chat even if the
+// VITE_WHATSAPP_NUMBER env var isn't configured on the host.
+export const WHATSAPP_NUMBER = ENV_NUMBER && ENV_NUMBER.length > 0 ? ENV_NUMBER : "923329705522";
 
 export const SITE_URL =
   (import.meta.env.VITE_SITE_URL as string | undefined)?.trim() ||
