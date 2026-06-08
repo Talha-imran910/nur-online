@@ -35,7 +35,7 @@ export default function Register() {
       email: cleanEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}${redirect}`,
         data: { name: cleanName, phone: phone.trim() },
       },
     });
