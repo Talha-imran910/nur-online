@@ -70,7 +70,7 @@ export default function Login() {
     } else {
       localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: data.user.email, name }));
       toast({ title: "Welcome back! 📖", description: "Continuing your Quranic journey..." });
-      navigate("/dashboard");
+      navigate(redirect || "/dashboard");
     }
     setLoading(false);
   };
