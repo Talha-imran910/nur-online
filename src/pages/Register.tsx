@@ -17,6 +17,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/dashboard";
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
