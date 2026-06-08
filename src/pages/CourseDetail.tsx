@@ -71,23 +71,33 @@ export default function CourseDetail() {
   const toggleUnit = (id: string) => setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
   const handleEnroll = async () => {
+    // 1. Not signed in → send to register, then bounce back here
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ title: "Please create an account first", description: "It only takes a moment — then you'll be enrolled automatically." });
+      navigate(`/register?redirect=/courses/${course.id}`);
+      return;
+    }
+
+    // 2. Free course → auto-enroll & go to player
+    if (course.isFree) {
+      await enrollInCourse(user.id, course.id);
+      toast({ title: "Enrolled! 🎉", description: `You're in "${course.title}". Happy learning!` });
+      navigate(`/player/${course.id}`);
+      return;
+    }
+
+    // 3. Paid course → open WhatsApp chat for manual payment
     const { whatsappUrl } = await import("@/lib/contact");
     const who = currentUser ? ` My name: ${currentUser.name}, Email: ${currentUser.email}.` : "";
-    const priceLine = course.isFree ? "(Free course)" : `(${course.price} USD)`;
     const url = whatsappUrl(
-      `Assalamu Alaikum! I am interested in enrolling in "${course.title}" ${priceLine} at Elaf-ul-Quran Academy.${who} Please guide me with the next steps. JazakAllah Khair.`
+      `Assalamu Alaikum! I am interested in enrolling in "${course.title}" ($${course.price}) at Elaf-ul-Quran Academy.${who} Please guide me with the payment & next steps. JazakAllah Khair.`
     );
     const win = window.open(url, "_blank", "noopener,noreferrer");
     if (!win) {
       try { (window.top || window).location.href = url; } catch { window.location.href = url; }
     }
-    toast({ title: "Opening WhatsApp 💬", description: "Send the message to confirm enrollment." });
-
-    // Also auto-enroll silently if logged in & free, so dashboard shows it
-    if (currentUser && course.isFree) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) await enrollInCourse(user.id, course.id);
-    }
+    toast({ title: "Opening WhatsApp 💬", description: "Send the message to confirm your enrollment & payment." });
   };
 
   return (

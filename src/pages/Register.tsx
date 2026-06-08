@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/dashboard";
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +35,7 @@ export default function Register() {
       email: cleanEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}${redirect}`,
         data: { name: cleanName, phone: phone.trim() },
       },
     });
@@ -69,7 +71,7 @@ export default function Register() {
       title: "Account Created! 🎉",
       description: data.session ? "Welcome to Elaf-ul-Quran Academy." : "Check your email to verify your account, then sign in.",
     });
-    navigate(data.session ? "/dashboard" : "/login");
+    navigate(data.session ? redirect : `/login?redirect=${encodeURIComponent(redirect)}`);
     setLoading(false);
   };
 

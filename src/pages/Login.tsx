@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function Login() {
     } else {
       localStorage.setItem("elaf_user", JSON.stringify({ role: "student", email: data.user.email, name }));
       toast({ title: "Welcome back! 📖", description: "Continuing your Quranic journey..." });
-      navigate("/dashboard");
+      navigate(redirect || "/dashboard");
     }
     setLoading(false);
   };
