@@ -71,7 +71,7 @@ export default function Register() {
       title: "Account Created! 🎉",
       description: data.session ? "Welcome to Elaf-ul-Quran Academy." : "Check your email to verify your account, then sign in.",
     });
-    navigate(data.session ? "/dashboard" : "/login");
+    navigate(data.session ? redirect : `/login?redirect=${encodeURIComponent(redirect)}`);
     setLoading(false);
   };
 
