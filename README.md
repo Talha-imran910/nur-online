@@ -3,7 +3,7 @@
 > **Nurturing Hearts. Enlightening Lives.**
 > A modern online Quran learning platform by **Ustadha Afshan Imran**, offering Nazra, Tajweed, Tafseer, Daily Duas, and Spiritual Tarbiyat for children and adults — worldwide.
 
-🌐 **Live:** [elaf-ul-quran.vercel.app](https://elaf-ul-quran.vercel.app)
+🌐 **Live:** [elaf-ul-quran.vercel.app](https://www.elafulquran.com/)
 
 ---
 
