@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import aboutMosque from "@/assets/about-mosque.jpg";
@@ -6,6 +7,7 @@ import { BookOpen, Heart, Users, Award, Globe, Clock, GraduationCap, Baby } from
 import { INSTRUCTOR } from "@/lib/mock-data";
 import { useScrollReveal } from "@/hooks/use-animations";
 import { IslamicDivider, ArabicQuote } from "@/components/IslamicDecorations";
+import { SITE_URL } from "@/lib/contact";
 
 export default function About() {
   const heroRef = useScrollReveal();
@@ -15,6 +17,12 @@ export default function About() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>About Us — Elaf-ul-Quran Academy</title>
+        <meta name="description" content="Learn about Elaf-ul-Quran Academy, founded by Ustadha Afshan Imran, offering online Nazra Quran, Tajweed & Tafseer education for children and adults worldwide." />
+        <link rel="canonical" href={`${SITE_URL}/about`} />
+        <meta property="og:url" content={`${SITE_URL}/about`} />
+      </Helmet>
       <Navbar />
 
       {/* Hero */}
