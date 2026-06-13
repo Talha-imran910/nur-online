@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { ArabicQuote } from "@/components/IslamicDecorations";
 import { Eye, EyeOff, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isCurrentUserTeacher } from "@/integrations/supabase/client";
+import { SITE_URL } from "@/lib/contact";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -77,6 +79,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>Login — Elaf-ul-Quran Academy</title>
+        <link rel="canonical" href={`${SITE_URL}/login`} />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
       <Navbar />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md animate-scale-in">
