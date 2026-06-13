@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { ArabicQuote } from "@/components/IslamicDecorations";
+import { SITE_URL } from "@/lib/contact";
 
 export default function Courses() {
   const [search, setSearch] = useState("");
@@ -21,7 +23,6 @@ export default function Courses() {
       const [data, subs] = await Promise.all([fetchPublishedCourses(), fetchSubjects()]);
       if (!alive) return;
       setCourses(data);
-      // Only show subject buttons used by published courses
       const usedIds = new Set(data.map((c) => c.subject));
       setSubjects(subs.filter((s) => usedIds.has(s.id)));
       setLoading(false);
@@ -40,6 +41,12 @@ export default function Courses() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>Quran Courses — Elaf-ul-Quran Academy</title>
+        <meta name="description" content="Browse online Quran courses at Elaf-ul-Quran Academy: Nazra Quran, Tajweed, Tafseer & more for kids and adults, taught one-on-one by Ustadha Afshan Imran." />
+        <link rel="canonical" href={`${SITE_URL}/courses`} />
+        <meta property="og:url" content={`${SITE_URL}/courses`} />
+      </Helmet>
       <Navbar />
       <section className="gradient-hero py-16 px-4 relative overflow-hidden islamic-overlay">
         <div className="container mx-auto text-center relative z-10">
