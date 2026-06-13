@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { ArabicQuote } from "@/components/IslamicDecorations";
 import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_URL } from "@/lib/contact";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -46,13 +48,11 @@ export default function Register() {
       return;
     }
 
-    // Insert into students table (id = auth uid). Ignore conflict if a trigger already inserted.
     if (data.user) {
       await supabase
         .from("students")
         .upsert({ id: data.user.id, name: cleanName, email: cleanEmail }, { onConflict: "id" });
 
-      // Auto-enroll the new student in all free published courses
       const { data: freeCourses } = await supabase
         .from("courses")
         .select("id")
@@ -77,6 +77,12 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>Register — Elaf-ul-Quran Academy</title>
+        <meta name="description" content="Create your account at Elaf-ul-Quran Academy and start learning Quran online with Tajweed and Tafseer." />
+        <link rel="canonical" href={`${SITE_URL}/register`} />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
       <Navbar />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md animate-scale-in">
