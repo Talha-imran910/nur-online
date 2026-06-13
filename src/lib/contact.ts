@@ -6,15 +6,12 @@
  * bundle still contains the value once built.)
  */
 const ENV_NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined)?.trim();
-
 // Fallback ensures the button always opens a real chat even if the
 // VITE_WHATSAPP_NUMBER env var isn't configured on the host.
 export const WHATSAPP_NUMBER = ENV_NUMBER && ENV_NUMBER.length > 0 ? ENV_NUMBER : "923329705522";
-
 export const SITE_URL =
   (import.meta.env.VITE_SITE_URL as string | undefined)?.trim() ||
-  "https://elaf-ul-quran.vercel.app";
-
+  "https://www.elafulquran.com";
 export function whatsappUrl(message?: string): string {
   const text = message ? `?text=${encodeURIComponent(message)}` : "";
   return `https://wa.me/${WHATSAPP_NUMBER}${text}`;
