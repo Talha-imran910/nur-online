@@ -33,42 +33,6 @@
 | Routing      | React Router v6 (BrowserRouter)         |
 | SEO          | react-helmet-async                      |
 
----
-
-## 🚀 Local Setup
-
-```bash
-# 1. Clone
-git clone https://github.com/<your-username>/elaf-ul-quran.git
-cd elaf-ul-quran
-
-# 2. Install
-bun install      # or: npm install
-
-# 3. Configure env
-cp .env.example .env
-# Edit .env and fill in VITE_WHATSAPP_NUMBER, VITE_SITE_URL
-
-# 4. Run
-bun dev          # or: npm run dev
-```
-
-Open [http://localhost:8080](http://localhost:8080).
-
----
-
-## 🔑 Environment Variables
-
-| Variable                | Description                                |
-| ----------------------- | ------------------------------------------ |
-| `VITE_WHATSAPP_NUMBER`  | WhatsApp business number (digits only)     |
-| `VITE_SITE_URL`         | Canonical site URL                         |
-
-Never commit `.env`. Use `.env.example` as the template.
-
----
-
-## 📂 Project Structure
 
 ```
 src/
