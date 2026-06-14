@@ -4,4 +4,4 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /profile
 
-Sitemap: https://elaf-ul-quran.vercel.app/sitemap.xml
+Sitemap: https://www.elafulquran.com/sitemap.xml
