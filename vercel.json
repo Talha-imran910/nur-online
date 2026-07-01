@@ -1,23 +1,5 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "headers": [
-    {
-      "source": "/",
-      "headers": [{ "key": "Link", "value": "<https://www.elafulquran.com/>; rel=\"canonical\"" }]
-    },
-    {
-      "source": "/courses",
-      "headers": [{ "key": "Link", "value": "<https://www.elafulquran.com/courses>; rel=\"canonical\"" }]
-    },
-    {
-      "source": "/about",
-      "headers": [{ "key": "Link", "value": "<https://www.elafulquran.com/about>; rel=\"canonical\"" }]
-    },
-    {
-      "source": "/register",
-      "headers": [{ "key": "Link", "value": "<https://www.elafulquran.com/register>; rel=\"canonical\"" }]
-    }
   ]
 }
