@@ -173,15 +173,49 @@ $$;
 
 -- 6. POLICIES (drop & recreate so the file is safe to re-run) ----------
 
--- Public-read tables
+-- Fully public-read (low sensitivity)
 do $$ declare t text;
 begin
-  foreach t in array array['subjects','courses','units','lessons','live_class','assignments']
+  foreach t in array array['subjects','live_class']
   loop
     execute format('drop policy if exists "%s_public_read" on public.%I', t, t);
     execute format('create policy "%s_public_read" on public.%I for select using (true)', t, t);
   end loop;
 end $$;
+
+-- Courses: only published courses are publicly readable; teachers see everything
+drop policy if exists "courses_public_read" on public.courses;
+create policy "courses_public_read" on public.courses
+  for select using (is_published = true or public.has_role(auth.uid(), 'teacher'));
+
+-- Units: only readable if parent course is published (or user is teacher)
+drop policy if exists "units_public_read" on public.units;
+create policy "units_public_read" on public.units
+  for select using (
+    public.has_role(auth.uid(), 'teacher')
+    or exists (select 1 from public.courses c where c.id = units.course_id and c.is_published = true)
+  );
+
+-- Lessons: only readable if parent course (via unit) is published (or teacher)
+drop policy if exists "lessons_public_read" on public.lessons;
+create policy "lessons_public_read" on public.lessons
+  for select using (
+    public.has_role(auth.uid(), 'teacher')
+    or exists (
+      select 1 from public.units u
+      join public.courses c on c.id = u.course_id
+      where u.id = lessons.unit_id and c.is_published = true
+    )
+  );
+
+-- Assignments: only readable if parent course is published (or teacher)
+drop policy if exists "assignments_public_read" on public.assignments;
+create policy "assignments_public_read" on public.assignments
+  for select using (
+    public.has_role(auth.uid(), 'teacher')
+    or exists (select 1 from public.courses c where c.id = assignments.course_id and c.is_published = true)
+  );
+
 
 -- Teacher-only writes on content tables
 do $$ declare t text;
