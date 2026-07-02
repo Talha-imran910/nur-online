@@ -115,11 +115,44 @@ export default function CourseDetail() {
         <meta name="twitter:title" content={course.title} />
         <meta name="twitter:description" content={course.description.slice(0, 200)} />
         <meta name="twitter:image" content={course.thumbnail || `${SITE_URL}/og-image.jpg`} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Course",
+          name: course.title,
+          description: course.description,
+          provider: {
+            "@type": "Organization",
+            name: "Elaf-ul-Quran Academy",
+            sameAs: SITE_URL,
+          },
+          hasCourseInstance: {
+            "@type": "CourseInstance",
+            courseMode: "online",
+            instructor: { "@type": "Person", name: INSTRUCTOR.name },
+          },
+          offers: {
+            "@type": "Offer",
+            price: String(course.price || 0),
+            priceCurrency: "USD",
+            category: course.isFree ? "Free" : "Paid",
+            availability: "https://schema.org/InStock",
+            url: `${SITE_URL}/courses/${course.id}`,
+          },
+        })}</script>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+            { "@type": "ListItem", position: 2, name: "Courses", item: `${SITE_URL}/courses` },
+            { "@type": "ListItem", position: 3, name: course.title, item: `${SITE_URL}/courses/${course.id}` },
+          ],
+        })}</script>
       </Helmet>
       <Navbar />
       <section className="relative overflow-hidden islamic-overlay">
         <div className="absolute inset-0 z-0">
-          <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
+          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 gradient-hero opacity-92" />
         </div>
         <div className="relative z-10 container mx-auto px-4 py-16">

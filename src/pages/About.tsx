@@ -32,7 +32,7 @@ export default function About() {
           <div className="absolute inset-0 gradient-hero opacity-92" />
         </div>
         <div className="relative z-10 container mx-auto px-4 text-center">
-          <img src={elafLogo} alt="" className="h-24 mx-auto mb-6 brightness-200 animate-float" />
+          <img src={elafLogo} alt="Elaf-ul-Quran Academy logo" className="h-24 mx-auto mb-6 brightness-200 animate-float" />
           <h1 className="font-serif text-4xl md:text-5xl font-bold text-cream animate-slide-up">About Elaf-ul-Quran Academy</h1>
           <p className="mt-4 text-cream/60 max-w-2xl mx-auto text-lg animate-slide-up" style={{ animationDelay: "0.1s" }}>
             Spreading the light of the Holy Quran with love, understanding, and spiritual guidance.

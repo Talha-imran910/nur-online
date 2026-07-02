@@ -68,7 +68,7 @@ export default function StudentDashboard() {
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src={elafLogo} alt="" className="h-9 w-9 object-contain brightness-200" />
+            <img src={elafLogo} alt="Elaf-ul-Quran Academy logo" className="h-9 w-9 object-contain brightness-200" />
             <span className="font-serif text-lg font-bold text-primary-foreground">Elaf-ul-Quran</span>
           </Link>
           <div className="flex items-center gap-4">

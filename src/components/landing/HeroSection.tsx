@@ -29,7 +29,7 @@ export default function HeroSection() {
         <div className="max-w-3xl">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6 animate-fade-in">
-            <img src={elafLogo} alt="" className="h-14 w-14 object-contain brightness-200 animate-float" />
+            <img src={elafLogo} alt="Elaf-ul-Quran Academy logo" className="h-14 w-14 object-contain brightness-200 animate-float" />
             <div>
               <p className="text-gold font-medium tracking-widest uppercase text-xs">بسم الله الرحمن الرحيم</p>
               <p className="text-cream/50 text-xs tracking-wide">Elaf-ul-Quran Academy</p>
