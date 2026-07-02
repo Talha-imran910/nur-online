@@ -116,6 +116,47 @@ async function countEnrollments(courseId: string): Promise<number> {
   return count || 0;
 }
 
+// Batched: 3 fixed queries (units + lessons + enrollments) regardless of course count.
+async function hydrateCourses(courseRows: any[]): Promise<Course[]> {
+  if (courseRows.length === 0) return [];
+  const courseIds = courseRows.map((c) => c.id);
+
+  const [{ data: allUnits }, { data: enrolls }] = await Promise.all([
+    supabase.from("units").select("*").in("course_id", courseIds).order("sort_order", { ascending: true }),
+    supabase.from("enrollments").select("course_id").in("course_id", courseIds),
+  ]);
+
+  const unitRows = allUnits || [];
+  const unitIds = unitRows.map((u: any) => u.id);
+  const { data: allLessons } = unitIds.length
+    ? await supabase.from("lessons").select("*").in("unit_id", unitIds).order("sort_order", { ascending: true })
+    : { data: [] as any[] };
+
+  const lessonsByUnit = new Map<string, any[]>();
+  for (const l of allLessons || []) {
+    const arr = lessonsByUnit.get(l.unit_id) || [];
+    arr.push(l);
+    lessonsByUnit.set(l.unit_id, arr);
+  }
+  const unitsByCourse = new Map<string, Unit[]>();
+  for (const u of unitRows) {
+    const arr = unitsByCourse.get(u.course_id) || [];
+    arr.push({
+      id: u.id,
+      title: u.title,
+      sortOrder: u.sort_order ?? 0,
+      lessons: (lessonsByUnit.get(u.id) || []).map(mapLesson),
+    });
+    unitsByCourse.set(u.course_id, arr);
+  }
+  const countsByCourse = new Map<string, number>();
+  for (const e of enrolls || []) {
+    countsByCourse.set(e.course_id, (countsByCourse.get(e.course_id) || 0) + 1);
+  }
+
+  return courseRows.map((c) => mapCourseRow(c, unitsByCourse.get(c.id) || [], countsByCourse.get(c.id) || 0));
+}
+
 // ---------- Courses ----------
 export async function fetchPublishedCourses(): Promise<Course[]> {
   const { data: courses, error } = await supabase
@@ -123,13 +164,11 @@ export async function fetchPublishedCourses(): Promise<Course[]> {
     .select("*")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
-  console.log("[db.fetchPublishedCourses] courses:", courses || [], "error:", error);
   if (error) {
-    console.error("[db.fetchPublishedCourses] Supabase error:", error.message);
+    if (import.meta.env.DEV) console.error("[db.fetchPublishedCourses]", error.message);
     return [];
   }
-  if (!courses) return [];
-  return Promise.all(courses.map(async (c) => mapCourseRow(c, await fetchUnitsForCourse(c.id), await countEnrollments(c.id))));
+  return hydrateCourses(courses || []);
 }
 
 export async function fetchSubjects(): Promise<{ id: string; name: string }[]> {
@@ -140,7 +179,7 @@ export async function fetchSubjects(): Promise<{ id: string; name: string }[]> {
 export async function fetchAllCourses(): Promise<Course[]> {
   const { data, error } = await supabase.from("courses").select("*").order("created_at", { ascending: false });
   if (error || !data) return [];
-  return Promise.all(data.map(async (c) => mapCourseRow(c, await fetchUnitsForCourse(c.id))));
+  return hydrateCourses(data);
 }
 
 export async function fetchCourseById(id: string): Promise<Course | null> {
@@ -260,9 +299,8 @@ export async function fetchMyEnrollments(userId: string) {
     .from("enrollments")
     .select("course_id, progress")
     .eq("student_id", userId);
-  console.log("[db.fetchMyEnrollments] user:", userId, "enrollments:", data || [], "error:", error);
   if (error) {
-    console.error("[db.fetchMyEnrollments] Supabase error:", error.message);
+    if (import.meta.env.DEV) console.error("[db.fetchMyEnrollments]", error.message);
     return [];
   }
   if (!data) return [];
@@ -293,8 +331,10 @@ export async function fetchAllStudents(): Promise<StudentRow[]> {
     .from("students")
     .select("*")
     .order("name", { ascending: true });
-  console.log("[db.fetchAllStudents] rows:", rows || [], "error:", error, "teacherIds:", [...teacherIds]);
-  if (error || !rows) return [];
+  if (error || !rows) {
+    if (import.meta.env.DEV) console.error("[db.fetchAllStudents]", error?.message);
+    return [];
+  }
 
   const filtered = rows.filter((r: any) => !teacherIds.has(r.id));
   const ids = filtered.map((r: any) => r.id);
