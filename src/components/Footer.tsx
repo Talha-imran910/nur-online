@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import elafLogo from "@/assets/elaf-logo.png";
-import islamicDivider from "@/assets/islamic-divider.png";
+import { IslamicDivider } from "@/components/IslamicDecorations";
 import { whatsappUrl } from "@/lib/contact";
 
 const SOCIAL_LINKS = [
@@ -13,15 +13,13 @@ const SOCIAL_LINKS = [
 export default function Footer() {
   return (
     <footer className="bg-navy text-cream/80 relative overflow-hidden">
-      <div className="w-full h-8 -mt-1">
-        <img src={islamicDivider} alt="" className="w-full h-full object-cover opacity-40" />
-      </div>
+      <IslamicDivider className="!py-0 -mt-1" opacity={0.35} />
 
       <div className="container mx-auto px-4 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <img src={elafLogo} alt="Elaf-ul-Quran" className="h-12 w-12 object-contain brightness-200" />
+              <img src={elafLogo} alt="Elaf-ul-Quran Academy logo" width="48" height="48" loading="lazy" className="h-12 w-12 object-contain brightness-200" />
               <div>
                 <span className="font-serif text-xl font-bold text-cream block">Elaf-ul-Quran</span>
                 <span className="text-[10px] text-cream/50 tracking-widest uppercase">Academy</span>
