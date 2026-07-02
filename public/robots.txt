@@ -3,5 +3,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /profile
+Disallow: /login
+Disallow: /player/
 
 Sitemap: https://www.elafulquran.com/sitemap.xml
