@@ -105,7 +105,7 @@ export default function AdminDashboard() {
       <header className="bg-navy border-b border-navy-light sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-3 group">
-            <img src={elafLogo} alt="" className="h-10 w-10 object-contain brightness-200 group-hover:scale-110 transition-transform duration-300" />
+            <img src={elafLogo} alt="Elaf-ul-Quran Academy logo" className="h-10 w-10 object-contain brightness-200 group-hover:scale-110 transition-transform duration-300" />
             <div>
               <span className="font-serif text-base font-bold text-cream block leading-tight">Teacher Panel</span>
               <span className="text-[10px] text-cream/50 tracking-wider uppercase">Elaf-ul-Quran Academy</span>
