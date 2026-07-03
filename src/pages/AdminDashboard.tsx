@@ -300,6 +300,11 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
+          {/* BLOG */}
+          <TabsContent value="blog" className="animate-fade-in">
+            <BlogManager />
+          </TabsContent>
+
           {/* GO LIVE */}
           <TabsContent value="live" className="animate-fade-in">
             <div className="max-w-xl mx-auto">
