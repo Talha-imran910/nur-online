@@ -41,6 +41,8 @@ const App = () => (
             <Route path="/courses/:courseId" element={<CourseDetail />} />
             <Route path="/player/:courseId" element={<CoursePlayer />} />
             <Route path="/about" element={<About />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/login" element={<RouteGuard mode="guest"><Login /></RouteGuard>} />
             <Route path="/register" element={<RouteGuard mode="guest"><Register /></RouteGuard>} />
             <Route path="/dashboard" element={<RouteGuard mode="student"><StudentDashboard /></RouteGuard>} />
