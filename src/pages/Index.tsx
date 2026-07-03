@@ -63,6 +63,7 @@ export default function Index() {
       <FeaturedCourses />
       <InstructorSection />
       <TestimonialsSection />
+      <LatestBlog />
       <CTASection />
       <Footer />
       <WhatsAppButton />
