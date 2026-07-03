@@ -159,6 +159,7 @@ export default function AdminDashboard() {
               { value: "overview", icon: BarChart3, label: "Overview" },
               { value: "courses", icon: BookOpen, label: "Courses" },
               { value: "upload", icon: Upload, label: "Add Content" },
+              { value: "blog", icon: FileText, label: "Blog" },
               { value: "live", icon: Radio, label: "Go Live" },
               { value: "students", icon: Users, label: "Students" },
               { value: "settings", icon: Settings, label: "Settings" },
