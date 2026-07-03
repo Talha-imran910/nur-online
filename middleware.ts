@@ -107,7 +107,7 @@ async function fetchPost(slug: string) {
     const r = await fetch(
       `${SUPABASE_URL}/rest/v1/blog_posts?slug=eq.${encodeURIComponent(
         slug,
-      )}&select=slug,title,excerpt,cover_url,is_published&limit=1`,
+      )}&select=slug,title,excerpt,cover_image_url,is_published&limit=1`,
       {
         headers: {
           apikey: SUPABASE_ANON,
@@ -120,7 +120,7 @@ async function fetchPost(slug: string) {
       slug: string;
       title: string;
       excerpt: string | null;
-      cover_url: string | null;
+      cover_image_url: string | null;
       is_published: boolean;
     }>;
     return rows[0] ?? null;
