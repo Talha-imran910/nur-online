@@ -439,3 +439,174 @@ export function subscribeToTables(tables: string[], cb: () => void): () => void 
   const unsubs = tables.map((t) => subscribeToTable(t, cb));
   return () => unsubs.forEach((u) => u());
 }
+
+// ---------- Blog ----------
+export interface QaItem { question: string; answer: string; }
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  category: string;
+  tags: string[];
+  qaItems: QaItem[] | null;
+  isPublished: boolean;
+  publishedAt: string | null;
+  metaTitle: string;
+  metaDescription: string;
+  authorName: string;
+  readingTimeMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapBlogPost(row: any): BlogPost {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt || "",
+    content: row.content || "",
+    coverImage: row.cover_image_url || "",
+    category: row.category || "teaching",
+    tags: row.tags || [],
+    qaItems: (row.qa_items as QaItem[] | null) ?? null,
+    isPublished: !!row.is_published,
+    publishedAt: row.published_at ?? null,
+    metaTitle: row.meta_title || "",
+    metaDescription: row.meta_description || "",
+    authorName: row.author_name || "Ustadha Afshan Imran",
+    readingTimeMinutes: row.reading_time_minutes || 1,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+  };
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80) || "post";
+}
+
+function estimateReadingMinutes(html: string): number {
+  const text = html.replace(/<[^>]*>/g, " ");
+  const words = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+async function ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
+  let candidate = base;
+  let i = 2;
+  while (true) {
+    let q = supabase.from("blog_posts").select("id").eq("slug", candidate).limit(1);
+    const { data } = await q;
+    const rows = (data || []).filter((r: any) => !excludeId || r.id !== excludeId);
+    if (rows.length === 0) return candidate;
+    candidate = `${base}-${i++}`;
+  }
+}
+
+export async function fetchPublishedBlogPosts(): Promise<BlogPost[]> {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("is_published", true)
+    .order("published_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(mapBlogPost);
+}
+
+export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(mapBlogPost);
+}
+
+export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+  const { data } = await supabase.from("blog_posts").select("*").eq("slug", slug).maybeSingle();
+  return data ? mapBlogPost(data) : null;
+}
+
+export interface BlogPostInput {
+  title: string;
+  slug?: string;
+  excerpt?: string;
+  content: string;
+  coverImage?: string;
+  category?: string;
+  tags?: string[];
+  qaItems?: QaItem[] | null;
+  isPublished?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+}
+
+export async function createBlogPost(input: BlogPostInput) {
+  const baseSlug = slugify(input.slug || input.title);
+  const slug = await ensureUniqueSlug(baseSlug);
+  const readingTime = estimateReadingMinutes(input.content || "");
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase.from("blog_posts").insert({
+    slug,
+    title: input.title,
+    excerpt: input.excerpt || "",
+    content: input.content || "",
+    cover_image_url: input.coverImage || null,
+    category: input.category || "teaching",
+    tags: input.tags || [],
+    qa_items: input.qaItems ?? null,
+    is_published: !!input.isPublished,
+    published_at: input.isPublished ? nowIso : null,
+    meta_title: input.metaTitle || null,
+    meta_description: input.metaDescription || null,
+    reading_time_minutes: readingTime,
+  }).select().maybeSingle();
+  return { data: data ? mapBlogPost(data) : null, error };
+}
+
+export async function updateBlogPost(id: string, input: BlogPostInput) {
+  const baseSlug = slugify(input.slug || input.title);
+  const slug = await ensureUniqueSlug(baseSlug, id);
+  const readingTime = estimateReadingMinutes(input.content || "");
+  const nowIso = new Date().toISOString();
+  // Fetch current to know if we're transitioning to published
+  const { data: current } = await supabase.from("blog_posts").select("is_published, published_at").eq("id", id).maybeSingle();
+  const nextPublished = !!input.isPublished;
+  const published_at = nextPublished ? (current?.published_at || nowIso) : null;
+  const { error } = await supabase.from("blog_posts").update({
+    slug,
+    title: input.title,
+    excerpt: input.excerpt || "",
+    content: input.content || "",
+    cover_image_url: input.coverImage || null,
+    category: input.category || "teaching",
+    tags: input.tags || [],
+    qa_items: input.qaItems ?? null,
+    is_published: nextPublished,
+    published_at,
+    meta_title: input.metaTitle || null,
+    meta_description: input.metaDescription || null,
+    reading_time_minutes: readingTime,
+  }).eq("id", id);
+  return { error };
+}
+
+export async function deleteBlogPost(id: string) {
+  return supabase.from("blog_posts").delete().eq("id", id);
+}
+
+export async function togglePublishBlogPost(id: string, isPublished: boolean) {
+  const { data: current } = await supabase.from("blog_posts").select("published_at").eq("id", id).maybeSingle();
+  return supabase.from("blog_posts").update({
+    is_published: isPublished,
+    published_at: isPublished ? (current?.published_at || new Date().toISOString()) : null,
+  }).eq("id", id);
+}

@@ -339,3 +339,60 @@ begin
 end $$;
 
 -- DONE ✅
+
+-- ======================================================================
+-- 10. BLOG POSTS -------------------------------------------------------
+-- ======================================================================
+create table if not exists public.blog_posts (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  title text not null,
+  excerpt text,
+  content text not null default '',
+  cover_image_url text,
+  category text default 'teaching',
+  tags text[] default '{}',
+  qa_items jsonb,
+  is_published boolean default false,
+  published_at timestamptz,
+  meta_title text,
+  meta_description text,
+  author_name text default 'Ustadha Afshan Imran',
+  reading_time_minutes int,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+grant select on public.blog_posts to anon, authenticated;
+grant insert, update, delete on public.blog_posts to authenticated;
+grant all on public.blog_posts to service_role;
+
+alter table public.blog_posts enable row level security;
+
+drop policy if exists "blog_public_read" on public.blog_posts;
+create policy "blog_public_read" on public.blog_posts
+  for select using (is_published = true or public.has_role(auth.uid(), 'teacher'));
+
+drop policy if exists "blog_teacher_write" on public.blog_posts;
+create policy "blog_teacher_write" on public.blog_posts
+  for all to authenticated
+  using (public.has_role(auth.uid(), 'teacher'))
+  with check (public.has_role(auth.uid(), 'teacher'));
+
+create or replace function public.set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists blog_posts_set_updated_at on public.blog_posts;
+create trigger blog_posts_set_updated_at
+  before update on public.blog_posts
+  for each row execute function public.set_updated_at();
+
+do $$ begin
+  alter publication supabase_realtime add table public.blog_posts;
+exception when duplicate_object then null; when others then null;
+end $$;

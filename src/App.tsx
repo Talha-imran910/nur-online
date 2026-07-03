@@ -16,6 +16,8 @@ const Register = lazy(() => import("./pages/Register"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ const App = () => (
             <Route path="/courses/:courseId" element={<CourseDetail />} />
             <Route path="/player/:courseId" element={<CoursePlayer />} />
             <Route path="/about" element={<About />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/login" element={<RouteGuard mode="guest"><Login /></RouteGuard>} />
             <Route path="/register" element={<RouteGuard mode="guest"><Register /></RouteGuard>} />
             <Route path="/dashboard" element={<RouteGuard mode="student"><StudentDashboard /></RouteGuard>} />

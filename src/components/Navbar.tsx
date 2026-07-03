@@ -7,6 +7,7 @@ import elafLogo from "@/assets/elaf-logo.png";
 const navLinks = [
   { label: "Home", path: "/" },
   { label: "Courses", path: "/courses" },
+  { label: "Blog", path: "/blog" },
   { label: "About", path: "/about" },
 ];
 
