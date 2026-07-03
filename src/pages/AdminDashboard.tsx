@@ -845,3 +845,286 @@ function ManageLessonsDialog({ course }: { course: Course }) {
     </Dialog>
   );
 }
+
+/* ========== BLOG MANAGER ========== */
+const BLOG_CATEGORIES = [
+  { id: "teaching", label: "Teaching" },
+  { id: "event-qa", label: "Event Q&A" },
+  { id: "reflection", label: "Reflection" },
+  { id: "announcement", label: "Announcement" },
+];
+
+function BlogManager() {
+  const { toast } = useToast();
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [editing, setEditing] = useState<BlogPost | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const reload = async () => setPosts(await fetchAllBlogPosts());
+  useEffect(() => {
+    reload();
+    const unsub = subscribeToTables(["blog_posts"], reload);
+    return () => unsub();
+  }, []);
+
+  const openNew = () => { setEditing(null); setShowForm(true); };
+  const openEdit = (p: BlogPost) => { setEditing(p); setShowForm(true); };
+  const closeForm = () => { setShowForm(false); setEditing(null); };
+
+  const handleDelete = async (p: BlogPost) => {
+    if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
+    const { error } = await deleteBlogPost(p.id);
+    if (error) return toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    toast({ title: "Post deleted 🗑️" });
+  };
+
+  const handleTogglePublish = async (p: BlogPost) => {
+    const { error } = await togglePublishBlogPost(p.id, !p.isPublished);
+    if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
+    toast({ title: !p.isPublished ? "Published ✅" : "Moved to draft 📝" });
+  };
+
+  if (showForm) {
+    return <BlogPostForm post={editing} onDone={() => { closeForm(); reload(); }} onCancel={closeForm} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-foreground">Blog Posts</h2>
+          <p className="text-sm text-muted-foreground mt-1">Write teachings, reflections, and event Q&amp;A</p>
+        </div>
+        <Button variant="emerald" size="sm" className="gap-1.5" onClick={openNew}>
+          <Plus className="h-4 w-4" /> New Post
+        </Button>
+      </div>
+
+      {posts.length === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
+            <p className="font-serif text-lg">No posts yet</p>
+            <p className="text-sm mt-1">Click "New Post" to write your first teaching or reflection.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-3">
+          {posts.map((p) => (
+            <Card key={p.id} className="border-border/50 hover-lift overflow-hidden">
+              <div className="p-4 flex items-start gap-4">
+                {p.coverImage ? (
+                  <img src={p.coverImage} alt="" className="h-16 w-24 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="h-16 w-24 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-2xl">✍️</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="font-serif text-base font-bold text-foreground truncate">{p.title}</h3>
+                    <Badge variant="secondary" className="text-[10px]">{BLOG_CATEGORIES.find((c) => c.id === p.category)?.label || p.category}</Badge>
+                    <Badge className={`text-[10px] ${p.isPublished ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      {p.isPublished ? "Published" : "Draft"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{p.excerpt || p.content.replace(/<[^>]*>/g, " ").slice(0, 120)}</p>
+                  <div className="text-[11px] text-muted-foreground mt-1.5 flex flex-wrap gap-3">
+                    <span>/{p.slug}</span>
+                    {p.publishedAt && <span>Published {new Date(p.publishedAt).toLocaleDateString()}</span>}
+                    <span>{p.readingTimeMinutes} min read</span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={p.isPublished} onCheckedChange={() => handleTogglePublish(p)} />
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => openEdit(p)}>
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(p)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BlogPostForm({ post, onDone, onCancel }: { post: BlogPost | null; onDone: () => void; onCancel: () => void }) {
+  const { toast } = useToast();
+  const [title, setTitle] = useState(post?.title || "");
+  const [slug, setSlug] = useState(post?.slug || "");
+  const [category, setCategory] = useState(post?.category || "teaching");
+  const [excerpt, setExcerpt] = useState(post?.excerpt || "");
+  const [coverImage, setCoverImage] = useState(post?.coverImage || "");
+  const [tagsStr, setTagsStr] = useState((post?.tags || []).join(", "));
+  const [content, setContent] = useState(post?.content || "");
+  const [isPublished, setIsPublished] = useState(post?.isPublished ?? false);
+  const [metaTitle, setMetaTitle] = useState(post?.metaTitle || "");
+  const [metaDescription, setMetaDescription] = useState(post?.metaDescription || "");
+  const [qaItems, setQaItems] = useState<QaItem[]>(post?.qaItems || []);
+  const [saving, setSaving] = useState(false);
+
+  const handleCover = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setCoverImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const addQa = () => setQaItems((prev) => [...prev, { question: "", answer: "" }]);
+  const updateQa = (i: number, patch: Partial<QaItem>) =>
+    setQaItems((prev) => prev.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
+  const removeQa = (i: number) => setQaItems((prev) => prev.filter((_, idx) => idx !== i));
+
+  const save = async () => {
+    if (!title.trim()) return toast({ title: "Title is required", variant: "destructive" });
+    if (!content.trim() || content === "<p></p>") return toast({ title: "Please add some content", variant: "destructive" });
+    setSaving(true);
+    const input: BlogPostInput = {
+      title: title.trim(),
+      slug: slug.trim() || undefined,
+      category,
+      excerpt: excerpt.trim(),
+      coverImage: coverImage || undefined,
+      tags: tagsStr.split(",").map((t) => t.trim()).filter(Boolean),
+      content,
+      isPublished,
+      metaTitle: metaTitle.trim() || undefined,
+      metaDescription: metaDescription.trim() || undefined,
+      qaItems: category === "event-qa" ? qaItems.filter((q) => q.question.trim()) : null,
+    };
+    const res = post ? await updateBlogPost(post.id, input) : await createBlogPost(input);
+    setSaving(false);
+    if (res.error) return toast({ title: "Save failed", description: res.error.message, variant: "destructive" });
+    toast({ title: post ? "Post updated ✅" : "Post created ✨" });
+    onDone();
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-serif text-2xl font-bold text-foreground">
+          {post ? "Edit Post" : "New Post"}
+        </h2>
+        <Button variant="ghost" size="sm" onClick={onCancel} className="gap-1"><XIcon className="h-4 w-4" /> Cancel</Button>
+      </div>
+
+      <Card className="border-border/50">
+        <CardContent className="p-5 space-y-4">
+          <div className="space-y-2">
+            <Label>Title *</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., The Meaning of Al-Fatihah" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Slug (URL)</Label>
+              <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto-generated from title" />
+              <p className="text-[11px] text-muted-foreground">Will appear as /blog/<span className="text-foreground">{slug || "your-slug"}</span></p>
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {BLOG_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Excerpt (short summary)</Label>
+            <Textarea rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder="One or two sentences shown on the blog listing." />
+          </div>
+          <div className="space-y-2">
+            <Label>Cover Image</Label>
+            <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
+              {coverImage ? (
+                <img src={coverImage} alt="Preview" className="h-32 w-full object-cover rounded-lg" />
+              ) : (<><Image className="h-8 w-8 text-muted-foreground" /><p className="text-xs text-muted-foreground">Click to upload cover image</p></>)}
+              <input type="file" accept="image/*" className="hidden" onChange={handleCover} />
+            </label>
+            {coverImage && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setCoverImage("")} className="text-xs">Remove image</Button>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Tags (comma separated)</Label>
+            <Input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} placeholder="tajweed, ramadan, duas" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader className="pb-2"><CardTitle className="font-serif text-base">Body</CardTitle></CardHeader>
+        <CardContent className="p-5 pt-0">
+          <RichTextEditor value={content} onChange={setContent} />
+        </CardContent>
+      </Card>
+
+      {category === "event-qa" && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="font-serif text-base">Questions &amp; Answers</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={addQa} className="gap-1"><Plus className="h-3 w-3" /> Add Q&amp;A</Button>
+          </CardHeader>
+          <CardContent className="p-5 pt-0 space-y-4">
+            {qaItems.length === 0 && <p className="text-sm text-muted-foreground italic">No questions yet — add one to log an event Q&amp;A.</p>}
+            {qaItems.map((qa, i) => (
+              <div key={i} className="border border-border/60 rounded-xl p-4 space-y-3 bg-muted/20">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-xs">Question {i + 1}</Label>
+                    <Input value={qa.question} onChange={(e) => updateQa(i, { question: e.target.value })} placeholder="What did the student ask?" />
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="mt-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => removeQa(i)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Answer</Label>
+                  <RichTextEditor value={qa.answer} onChange={(html) => updateQa(i, { answer: html })} />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="border-border/50">
+        <CardHeader className="pb-2"><CardTitle className="font-serif text-base">SEO (optional)</CardTitle></CardHeader>
+        <CardContent className="p-5 pt-0 space-y-4">
+          <div className="space-y-2">
+            <Label>Meta Title</Label>
+            <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} placeholder="Falls back to post title" />
+          </div>
+          <div className="space-y-2">
+            <Label>Meta Description</Label>
+            <Textarea rows={2} value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="Falls back to excerpt" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardContent className="p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Switch checked={isPublished} onCheckedChange={setIsPublished} />
+            <div>
+              <p className="text-sm font-medium">{isPublished ? "Published — visible to everyone" : "Draft — only you can see it"}</p>
+              <p className="text-xs text-muted-foreground">Toggle anytime.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button variant="emerald" onClick={save} disabled={saving} className="gap-1.5">
+              <Save className="h-4 w-4" /> {saving ? "Saving..." : (post ? "Save Changes" : "Create Post")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
