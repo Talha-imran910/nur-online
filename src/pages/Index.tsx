@@ -6,6 +6,7 @@ import SubjectsSection from "@/components/landing/SubjectsSection";
 import FeaturedCourses from "@/components/landing/FeaturedCourses";
 import InstructorSection from "@/components/landing/InstructorSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import LatestBlog from "@/components/landing/LatestBlog";
 import CTASection from "@/components/landing/CTASection";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import LiveClassBanner from "@/components/LiveClassBanner";
