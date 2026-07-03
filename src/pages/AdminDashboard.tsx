@@ -32,6 +32,7 @@ import {
   BookOpen, Users, BarChart3, Plus, Edit, LogOut,
   GraduationCap, Star, Upload, Video, Save, TrendingUp, Sparkles,
   Radio, HelpCircle, Trash2, DollarSign, Image, FileUp, Settings,
+  FileText, X as XIcon,
 } from "lucide-react";
 import elafLogo from "@/assets/elaf-logo.png";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
