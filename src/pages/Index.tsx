@@ -50,7 +50,7 @@ export default function Index() {
             "@type": "WebPage",
             "@id": `${SITE_URL}/#webpage`,
             url: `${SITE_URL}/`,
-            name: "Elaf-ul-Quran Academy — Learn Quran Online",
+            name: "Elaf-ul-Quran Academy: Online Quran Classes",
             about: { "@id": `${SITE_URL}/#org` },
             isPartOf: { "@id": `${SITE_URL}/#website` },
           },
