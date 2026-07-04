@@ -42,8 +42,8 @@ export default function Courses() {
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
-        <title>Quran Courses — Elaf-ul-Quran Academy</title>
-        <meta name="description" content="Browse online Quran courses at Elaf-ul-Quran Academy: Nazra Quran, Tajweed, Tafseer & more for kids and adults, taught one-on-one by Ustadha Afshan Imran." />
+        <title>Online Quran Courses for Kids & Adults | Elaf-ul-Quran</title>
+        <meta name="description" content="Browse online Quran courses: Nazra with Tajweed, Tafseer, Qaida and more. Live one-on-one classes for children and adults, taught by Ustadha Afshan Imran." />
         <link rel="canonical" href={`${SITE_URL}/courses`} />
         <meta property="og:url" content={`${SITE_URL}/courses`} />
       </Helmet>
