@@ -18,8 +18,8 @@ export default function About() {
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
-        <title>About Us — Elaf-ul-Quran Academy</title>
-        <meta name="description" content="Learn about Elaf-ul-Quran Academy, founded by Ustadha Afshan Imran, offering online Nazra Quran, Tajweed & Tafseer education for children and adults worldwide." />
+        <title>About Ustadha Afshan Imran | Elaf-ul-Quran Academy</title>
+        <meta name="description" content="Meet Ustadha Afshan Imran, founder of Elaf-ul-Quran Academy. Online Nazra, Tajweed and Tafseer classes for children and adults worldwide." />
         <link rel="canonical" href={`${SITE_URL}/about`} />
         <meta property="og:url" content={`${SITE_URL}/about`} />
       </Helmet>
