@@ -86,8 +86,8 @@ export default function CoursePlayer() {
 
   return (
     <div className="min-h-screen bg-navy flex flex-col">
-      <div className="bg-navy-light border-b border-cream/10 px-4 py-3 flex items-center gap-4">
-        <Link to={`/courses/${courseId}`} className="text-cream/70 hover:text-cream transition-colors">
+      <div className="bg-navy-light border-b border-cream/10 px-3 sm:px-4 py-3 flex items-center gap-3 sm:gap-4">
+        <Link to={`/courses/${courseId}`} aria-label="Back to course" className="text-cream/70 hover:text-cream transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1 min-w-0">
@@ -97,25 +97,30 @@ export default function CoursePlayer() {
             <span className="text-xs text-cream/50">{completedLessons.length}/{totalLessons}</span>
           </div>
         </div>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-cream/70 hover:text-cream p-2 lg:hidden">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={sidebarOpen ? "Hide lesson list" : "Show lesson list"}
+          className="text-cream/70 hover:text-cream min-h-[44px] min-w-[44px] flex items-center justify-center lg:hidden"
+        >
           {sidebarOpen ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
         <div className="flex-1 flex flex-col overflow-y-auto">
           {currentLesson && !showQuiz && (
-            <div className="relative aspect-video w-full bg-black select-none" style={{ WebkitUserSelect: "none" }}>
+            <div className="relative aspect-video w-full bg-black">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}?rel=0&modestbranding=1&disablekb=0`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}?rel=0&modestbranding=1&playsinline=1`}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
                 title={currentLesson.title}
                 referrerPolicy="strict-origin-when-cross-origin"
               />
+              {/* Watermark: pointer-events:none so native mobile play/pause/fullscreen stay tappable */}
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-20" aria-hidden="true">
-                <span className="text-cream font-serif text-2xl md:text-4xl rotate-[-25deg] whitespace-nowrap drop-shadow-lg">
+                <span className="text-cream font-serif text-xl md:text-4xl rotate-[-25deg] whitespace-nowrap drop-shadow-lg select-none" style={{ WebkitUserSelect: "none" }}>
                   {currentUser.email || "Elaf-ul-Quran"} • Elaf-ul-Quran Academy
                 </span>
               </div>
@@ -144,7 +149,7 @@ export default function CoursePlayer() {
                         return (
                           <button key={oi} disabled={quizSubmitted}
                             onClick={() => setQuizAnswers((prev) => ({ ...prev, [q.id]: oi }))}
-                            className={`w-full text-left p-3 rounded-lg border transition-all duration-300 text-sm ${
+                            className={`w-full text-left p-3 rounded-lg border transition-all duration-300 text-sm min-h-[44px] ${
                               isCorrect ? "border-emerald bg-emerald/10 text-emerald-light scale-[1.02]" :
                               isWrong ? "border-destructive bg-destructive/10 text-destructive" :
                               isSelected ? "border-gold bg-gold/10 text-gold" :
@@ -172,19 +177,19 @@ export default function CoursePlayer() {
           )}
 
           {currentLesson && !showQuiz && (
-            <div className="p-6 animate-fade-in">
+            <div className="p-4 sm:p-6 animate-fade-in">
               <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <h2 className="font-serif text-2xl font-bold text-cream">{currentLesson.title}</h2>
+                <div className="min-w-0">
+                  <h2 className="font-serif text-xl sm:text-2xl font-bold text-cream">{currentLesson.title}</h2>
                   <p className="text-cream/50 text-sm mt-1">Duration: {currentLesson.duration}</p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap w-full sm:w-auto">
                   {currentLesson.hasQuiz && (
-                    <Button variant="heroOutline" size="sm" onClick={() => setShowQuiz(true)}>
+                    <Button variant="heroOutline" size="sm" className="min-h-[44px] flex-1 sm:flex-none" onClick={() => setShowQuiz(true)}>
                       <HelpCircle className="mr-1 h-4 w-4" /> Take Quiz
                     </Button>
                   )}
-                  <Button variant="hero" size="sm" onClick={markComplete}>
+                  <Button variant="hero" size="sm" className="min-h-[44px] flex-1 sm:flex-none" onClick={markComplete}>
                     <CheckCircle className="mr-1 h-4 w-4" /> Complete & Next
                   </Button>
                 </div>
@@ -193,31 +198,30 @@ export default function CoursePlayer() {
           )}
         </div>
 
-        <div className={`${sidebarOpen ? "w-80" : "w-0"} transition-all duration-300 overflow-hidden bg-navy-light border-l border-cream/10 flex-shrink-0`}>
-          <div className="w-80 h-full overflow-y-auto">
-            <div className="p-4">
-              <h3 className="font-serif text-lg font-bold text-cream mb-4">Course Content</h3>
-              {course.units.map((unit) => (
-                <div key={unit.id} className="mb-4">
-                  <p className="text-xs font-semibold text-gold uppercase tracking-wider mb-2">{unit.title}</p>
-                  {unit.lessons.map((lesson) => {
-                    const isActive = lesson.id === currentLessonId;
-                    const isCompleted = completedLessons.includes(lesson.id);
-                    return (
-                      <button key={lesson.id}
-                        onClick={() => { setCurrentLessonId(lesson.id); setShowQuiz(false); setQuizSubmitted(false); setQuizAnswers({}); }}
-                        className={`w-full text-left p-3 rounded-lg mb-1 flex items-center gap-3 transition-all duration-300 text-sm ${
-                          isActive ? "bg-emerald/20 text-cream scale-[1.02]" : "text-cream/60 hover:bg-cream/5"
-                        }`}
-                      >
-                        {isCompleted ? <CheckCircle className="h-4 w-4 text-emerald-light shrink-0" /> : <PlayCircle className="h-4 w-4 shrink-0" />}
-                        <span className="truncate">{lesson.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+        {/* Lesson list: appears below the video on mobile, as a right-side panel on lg+. */}
+        <div className={`${sidebarOpen ? "block" : "hidden lg:block"} w-full lg:w-80 bg-navy-light border-t lg:border-t-0 lg:border-l border-cream/10 flex-shrink-0 overflow-y-auto`}>
+          <div className="p-4">
+            <h3 className="font-serif text-lg font-bold text-cream mb-4">Course Content</h3>
+            {course.units.map((unit) => (
+              <div key={unit.id} className="mb-4">
+                <p className="text-xs font-semibold text-gold uppercase tracking-wider mb-2">{unit.title}</p>
+                {unit.lessons.map((lesson) => {
+                  const isActive = lesson.id === currentLessonId;
+                  const isCompleted = completedLessons.includes(lesson.id);
+                  return (
+                    <button key={lesson.id}
+                      onClick={() => { setCurrentLessonId(lesson.id); setShowQuiz(false); setQuizSubmitted(false); setQuizAnswers({}); }}
+                      className={`w-full text-left p-3 rounded-lg mb-1 flex items-center gap-3 transition-colors text-sm min-h-[44px] ${
+                        isActive ? "bg-emerald/20 text-cream" : "text-cream/60 hover:bg-cream/5 active:bg-cream/10"
+                      }`}
+                    >
+                      {isCompleted ? <CheckCircle className="h-4 w-4 text-emerald-light shrink-0" /> : <PlayCircle className="h-4 w-4 shrink-0" />}
+                      <span className="truncate">{lesson.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
