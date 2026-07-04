@@ -103,11 +103,11 @@ export default function CourseDetail() {
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
-        <title>{course.title} — Elaf-ul-Quran Academy</title>
-        <meta name="description" content={course.description.slice(0, 160)} />
+        <title>{course.title} | Elaf-ul-Quran Academy</title>
+        <meta name="description" content={course.description.slice(0, 155)} />
         <link rel="canonical" href={`${SITE_URL}/courses/${course.id}`} />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={`${course.title} — Elaf-ul-Quran Academy`} />
+        <meta property="og:title" content={`${course.title} | Elaf-ul-Quran Academy`} />
         <meta property="og:description" content={course.description.slice(0, 200)} />
         <meta property="og:url" content={`${SITE_URL}/courses/${course.id}`} />
         <meta property="og:image" content={course.thumbnail || `${SITE_URL}/og-image.jpg`} />

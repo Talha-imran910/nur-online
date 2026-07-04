@@ -18,8 +18,8 @@ export default function About() {
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
-        <title>About Us — Elaf-ul-Quran Academy</title>
-        <meta name="description" content="Learn about Elaf-ul-Quran Academy, founded by Ustadha Afshan Imran, offering online Nazra Quran, Tajweed & Tafseer education for children and adults worldwide." />
+        <title>About Ustadha Afshan Imran | Elaf-ul-Quran Academy</title>
+        <meta name="description" content="Meet Ustadha Afshan Imran, founder of Elaf-ul-Quran Academy. Online Nazra, Tajweed and Tafseer classes for children and adults worldwide." />
         <link rel="canonical" href={`${SITE_URL}/about`} />
         <meta property="og:url" content={`${SITE_URL}/about`} />
       </Helmet>
@@ -51,8 +51,8 @@ export default function About() {
               </h2>
               <IslamicDivider className="mt-4 mb-4" opacity={0.2} />
               <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Our mission is to make Quranic education easy, accessible, and inspiring for everyone — 
-                from children to adults, from beginners to advanced learners. We believe every heart 
+                Our mission is to make Quranic education easy, accessible, and inspiring for everyone,
+                from children to adults, from beginners to advanced learners. We believe every heart
                 deserves to connect with the words of Allah ﷻ.
               </p>
             </div>

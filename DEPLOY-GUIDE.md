@@ -20,9 +20,9 @@ Total time: ~30 minutes.
 | **Vercel** | Hosts the frontend | 100 GB bandwidth/mo |
 | **Supabase** | Database + Auth | 500 MB DB, 50 000 users |
 
-Your Supabase project (already created):
-- **URL:** `https://ygacoyszusqoyasifyjh.supabase.co`
-- **Publishable key:** `sb_publishable_v0mPP0ft_N7Vj24GvfzOuA_DRgElroq`
+Your Supabase project details (URL and publishable key) live in
+`src/integrations/supabase/client.ts`. The publishable key is safe to
+commit (Row Level Security protects the data).
 
 ---
 
@@ -46,7 +46,7 @@ Your Supabase project (already created):
 ## PART B — Set up Supabase (the part that was failing) (10 min)
 
 ### B-1. Run the SQL
-1. Go to <https://supabase.com/dashboard/project/ygacoyszusqoyasifyjh/sql/new>.
+1. Open your Supabase project → **SQL Editor** → **New query**.
 2. Open the file **`supabase/schema.sql`** in this repo.
 3. Copy **all** of it, paste into the SQL editor, click **Run**.
 

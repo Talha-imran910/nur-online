@@ -41,8 +41,8 @@ export default function HeroSection() {
             <span className="text-gradient-gold block mt-2">Holy Quran</span>
           </h1>
           <p className="mt-6 text-lg text-cream/65 max-w-xl animate-slide-up" style={{ animationDelay: "0.15s" }}>
-            With love, understanding & spiritual guidance. Learn Nazra Quran with Tajweed,
-            Tafseer, Daily Duas & more — from children to adults, beginners to advanced learners.
+            With love, understanding and spiritual guidance. Learn Nazra Quran with Tajweed,
+            Tafseer, daily duas and more. For children and adults, beginners to advanced learners.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4 animate-slide-up" style={{ animationDelay: "0.25s" }}>

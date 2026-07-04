@@ -50,6 +50,7 @@ export default async function handler(): Promise<Response> {
     urlEntry(`${SITE}/courses`, null, "weekly", "0.9"),
     urlEntry(`${SITE}/about`, null, "monthly", "0.7"),
     urlEntry(`${SITE}/register`, null, "monthly", "0.6"),
+    urlEntry(`${SITE}/privacy-policy`, null, "yearly", "0.3"),
   ];
   if (posts.length > 0) entries.push(urlEntry(`${SITE}/blog`, null, "weekly", "0.8"));
 

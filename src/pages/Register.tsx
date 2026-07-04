@@ -78,7 +78,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
-        <title>Register — Elaf-ul-Quran Academy</title>
+        <title>Create Your Account | Elaf-ul-Quran Academy</title>
         <meta name="description" content="Create your account at Elaf-ul-Quran Academy and start learning Quran online with Tajweed and Tafseer." />
         <link rel="canonical" href={`${SITE_URL}/register`} />
         <meta name="robots" content="noindex, follow" />

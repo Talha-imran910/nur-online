@@ -17,9 +17,9 @@ const SUPABASE_ANON =
 
 const DEFAULT_OG = `${SITE}/og-image.jpg`;
 const DEFAULT_TITLE =
-  "Elaf-ul-Quran Academy — Learn Quran Online with Tajweed & Tafseer";
+  "Online Quran Classes with Tajweed & Tafseer | Elaf-ul-Quran";
 const DEFAULT_DESC =
-  "Learn Nazra Quran with Tajweed, Tafseer & Sunnah practices. Online Quran classes for children & adults worldwide.";
+  "Learn Nazra Quran online with Tajweed, Tafseer and Sunnah practices. Live one-on-one classes for children and adults worldwide.";
 
 const BOT_RE =
   /(facebookexternalhit|facebot|twitterbot|whatsapp|slackbot|linkedinbot|telegrambot|discordbot|googlebot|bingbot|applebot|duckduckbot|yandexbot|baiduspider|embedly|redditbot|pinterest|skypeuripreview|vkshare|w3c_validator|quora link preview)/i;
@@ -145,10 +145,10 @@ export default async function middleware(request: Request): Promise<Response> {
     const canonical = `${SITE}/courses/${parts[1]}`;
     if (course && course.is_published) {
       const html = renderHtml({
-        title: `${course.title} — Elaf-ul-Quran Academy`,
+        title: `${course.title} | Elaf-ul-Quran Academy`,
         description:
           course.description?.slice(0, 200) ||
-          "Enroll in this Quran course with Ustadha Afshan Imran.",
+          "Enroll in this online Quran course with Ustadha Afshan Imran.",
         url: canonical,
         image: course.thumbnail_url || DEFAULT_OG,
         type: "article",
@@ -169,7 +169,7 @@ export default async function middleware(request: Request): Promise<Response> {
     const canonical = `${SITE}/blog/${parts[1]}`;
     if (post && post.is_published) {
       const html = renderHtml({
-        title: `${post.title} — Elaf-ul-Quran Academy`,
+        title: `${post.title} | Elaf-ul-Quran Blog`,
         description: post.excerpt?.slice(0, 200) || DEFAULT_DESC,
         url: canonical,
         image: post.cover_image_url || DEFAULT_OG,

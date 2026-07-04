@@ -9,6 +9,7 @@ import {
   endLiveClass,
   createCourse,
   updateCoursePrice,
+  updateCourse,
   deleteCourse,
   addLesson,
   removeLesson,
@@ -270,6 +271,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/50">
+                      <EditCourseDialog course={c} />
                       <EditPriceDialog course={c} onSave={(price, isFree) => handleUpdateCoursePrice(c.id, price, isFree)} />
                       <ManageLessonsDialog course={c} />
                       <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-lg" onClick={() => { if (confirm(`Delete "${c.title}"? This cannot be undone.`)) handleDeleteCourse(c.id); }}>
@@ -492,6 +494,106 @@ export default function AdminDashboard() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+/* ========== EDIT COURSE (full edit) ========== */
+function EditCourseDialog({ course }: { course: Course }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(course.title);
+  const [description, setDescription] = useState(course.description);
+  const [subject, setSubject] = useState(course.subject);
+  const [level, setLevel] = useState<string>(course.level);
+  const [duration, setDuration] = useState(course.duration || "");
+  const [price, setPrice] = useState(String(course.price ?? 0));
+  const [isFree, setIsFree] = useState(course.isFree);
+  const [thumbnail, setThumbnail] = useState(course.thumbnail || "");
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) fetchSubjects().then(setSubjects);
+  }, [open]);
+
+  const handleThumbnail = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setThumbnail(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) { toast({ title: "Title is required", variant: "destructive" }); return; }
+    if (!description.trim()) { toast({ title: "Description is required", variant: "destructive" }); return; }
+    const priceNum = Number(price);
+    if (Number.isNaN(priceNum) || priceNum < 0) {
+      toast({ title: "Price must be a non-negative number", variant: "destructive" }); return;
+    }
+    setSaving(true);
+    const { error } = await updateCourse(course.id, {
+      title, description, subject, level, duration, price: priceNum, isFree, thumbnail,
+    });
+    setSaving(false);
+    if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Course Updated ✅", description: `"${title}" has been saved.` });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 rounded-lg"><Edit className="h-3 w-3" /> Edit</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="font-serif">Edit Course</DialogTitle></DialogHeader>
+        <form onSubmit={handleSave} className="space-y-4 mt-2">
+          <div className="space-y-2"><Label>Course Name *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
+          <div className="space-y-2"><Label>Description *</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} required /></div>
+          <div className="space-y-2">
+            <Label>Thumbnail</Label>
+            {thumbnail && <img src={thumbnail} alt="Preview" className="h-24 w-full object-cover rounded-lg mb-2" />}
+            <Input placeholder="Paste image URL" value={thumbnail} onChange={(e) => setThumbnail(e.target.value)} />
+            <label className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 text-xs text-muted-foreground">
+              <FileUp className="h-3 w-3" /> or upload from device
+              <input type="file" accept="image/*" className="hidden" onChange={handleThumbnail} />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={subject} onChange={(e) => setSubject(e.target.value)}>
+                {subjects.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Level</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={level} onChange={(e) => setLevel(e.target.value)}>
+                <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 12 weeks" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
+            <div className="space-y-2 flex flex-col">
+              <Label>Free Course</Label>
+              <div className="flex items-center h-10"><Switch checked={isFree} onCheckedChange={setIsFree} /></div>
+            </div>
+          </div>
+          {!isFree && (
+            <div className="space-y-2"><Label>Price (USD)</Label><Input type="number" min="0" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
+          )}
+          <div className="flex gap-2 pt-2">
+            <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
+            <Button type="submit" variant="emerald" className="flex-1" disabled={saving}>
+              <Save className="h-4 w-4 mr-1" /> {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

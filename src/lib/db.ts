@@ -244,6 +244,39 @@ export async function updateCoursePrice(id: string, price: number, isFree: boole
   return supabase.from("courses").update({ price, is_free: isFree }).eq("id", id);
 }
 
+export interface UpdateCourseInput {
+  title: string;
+  description: string;
+  subject: string;
+  thumbnail: string;
+  level: string;
+  duration: string;
+  price: number;
+  isFree: boolean;
+}
+
+export async function updateCourse(id: string, input: UpdateCourseInput) {
+  const title = input.title?.trim();
+  const description = input.description?.trim();
+  if (!title) return { error: { message: "Title is required" } as any };
+  if (!description) return { error: { message: "Description is required" } as any };
+  if (input.thumbnail && !/^(https?:\/\/|data:image\/|\/)/i.test(input.thumbnail)) {
+    return { error: { message: "Thumbnail must be a valid URL" } as any };
+  }
+  const price = Number(input.price);
+  if (Number.isNaN(price) || price < 0) return { error: { message: "Price must be a non-negative number" } as any };
+  return supabase.from("courses").update({
+    title,
+    description,
+    subject_id: input.subject,
+    thumbnail_url: input.thumbnail || "/placeholder.svg",
+    level: input.level,
+    duration: input.duration || "",
+    price: input.isFree ? 0 : price,
+    is_free: input.isFree || price === 0,
+  }).eq("id", id);
+}
+
 export async function deleteCourse(id: string) {
   return supabase.from("courses").delete().eq("id", id);
 }
