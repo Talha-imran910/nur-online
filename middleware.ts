@@ -145,10 +145,10 @@ export default async function middleware(request: Request): Promise<Response> {
     const canonical = `${SITE}/courses/${parts[1]}`;
     if (course && course.is_published) {
       const html = renderHtml({
-        title: `${course.title} — Elaf-ul-Quran Academy`,
+        title: `${course.title} | Elaf-ul-Quran Academy`,
         description:
           course.description?.slice(0, 200) ||
-          "Enroll in this Quran course with Ustadha Afshan Imran.",
+          "Enroll in this online Quran course with Ustadha Afshan Imran.",
         url: canonical,
         image: course.thumbnail_url || DEFAULT_OG,
         type: "article",
