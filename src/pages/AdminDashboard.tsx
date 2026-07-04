@@ -9,6 +9,7 @@ import {
   endLiveClass,
   createCourse,
   updateCoursePrice,
+  updateCourse,
   deleteCourse,
   addLesson,
   removeLesson,
