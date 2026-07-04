@@ -69,7 +69,7 @@ export default function BlogPost() {
   }
 
   const canonical = `${SITE_URL}/blog/${post.slug}`;
-  const metaTitle = post.metaTitle || `${post.title} — Elaf-ul-Quran Academy`;
+  const metaTitle = post.metaTitle || `${post.title} | Elaf-ul-Quran Blog`;
   const metaDesc = (post.metaDescription || post.excerpt || post.content.replace(/<[^>]*>/g, " ")).slice(0, 200);
   const image = post.coverImage || `${SITE_URL}/og-image.jpg`;
   const dateLabel = post.publishedAt
