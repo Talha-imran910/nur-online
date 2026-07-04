@@ -80,7 +80,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
-        <title>Login — Elaf-ul-Quran Academy</title>
+        <title>Student Login | Elaf-ul-Quran Academy</title>
         <link rel="canonical" href={`${SITE_URL}/login`} />
         <meta name="robots" content="noindex, follow" />
       </Helmet>
