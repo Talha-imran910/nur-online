@@ -17,9 +17,9 @@ const SUPABASE_ANON =
 
 const DEFAULT_OG = `${SITE}/og-image.jpg`;
 const DEFAULT_TITLE =
-  "Elaf-ul-Quran Academy — Learn Quran Online with Tajweed & Tafseer";
+  "Online Quran Classes with Tajweed & Tafseer | Elaf-ul-Quran";
 const DEFAULT_DESC =
-  "Learn Nazra Quran with Tajweed, Tafseer & Sunnah practices. Online Quran classes for children & adults worldwide.";
+  "Learn Nazra Quran online with Tajweed, Tafseer and Sunnah practices. Live one-on-one classes for children and adults worldwide.";
 
 const BOT_RE =
   /(facebookexternalhit|facebot|twitterbot|whatsapp|slackbot|linkedinbot|telegrambot|discordbot|googlebot|bingbot|applebot|duckduckbot|yandexbot|baiduspider|embedly|redditbot|pinterest|skypeuripreview|vkshare|w3c_validator|quora link preview)/i;
