@@ -271,6 +271,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/50">
+                      <EditCourseDialog course={c} />
                       <EditPriceDialog course={c} onSave={(price, isFree) => handleUpdateCoursePrice(c.id, price, isFree)} />
                       <ManageLessonsDialog course={c} />
                       <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-lg" onClick={() => { if (confirm(`Delete "${c.title}"? This cannot be undone.`)) handleDeleteCourse(c.id); }}>
