@@ -20,9 +20,9 @@ Total time: ~30 minutes.
 | **Vercel** | Hosts the frontend | 100 GB bandwidth/mo |
 | **Supabase** | Database + Auth | 500 MB DB, 50 000 users |
 
-Your Supabase project (already created):
-- **URL:** `https://ygacoyszusqoyasifyjh.supabase.co`
-- **Publishable key:** `sb_publishable_v0mPP0ft_N7Vj24GvfzOuA_DRgElroq`
+Your Supabase project details (URL and publishable key) live in
+`src/integrations/supabase/client.ts`. The publishable key is safe to
+commit (Row Level Security protects the data).
 
 ---
 
