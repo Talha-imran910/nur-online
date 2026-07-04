@@ -16,8 +16,8 @@ export default function Index() {
   return (
     <div className="min-h-screen">
       <Helmet>
-        <title>Elaf-ul-Quran Academy — Learn Quran Online with Tajweed, Tafseer & More</title>
-        <meta name="description" content="Elaf-ul-Quran Academy — Learn Nazra Quran with Tajweed, Tafseer, Daily Duas & Sunnah practices. Online Quran classes for children & adults worldwide. Join Ustadha Afshan Imran." />
+        <title>Online Quran Classes with Tajweed & Tafseer | Elaf-ul-Quran</title>
+        <meta name="description" content="Learn Nazra Quran online with Tajweed, Tafseer, daily duas and Sunnah practices. Live one-on-one classes for children and adults worldwide with Ustadha Afshan Imran." />
         <link rel="canonical" href={`${SITE_URL}/`} />
         <meta property="og:url" content={`${SITE_URL}/`} />
         <script type="application/ld+json">{JSON.stringify([
