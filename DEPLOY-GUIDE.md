@@ -46,7 +46,7 @@ commit (Row Level Security protects the data).
 ## PART B — Set up Supabase (the part that was failing) (10 min)
 
 ### B-1. Run the SQL
-1. Go to <https://supabase.com/dashboard/project/ygacoyszusqoyasifyjh/sql/new>.
+1. Open your Supabase project → **SQL Editor** → **New query**.
 2. Open the file **`supabase/schema.sql`** in this repo.
 3. Copy **all** of it, paste into the SQL editor, click **Run**.
 
