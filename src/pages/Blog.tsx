@@ -46,12 +46,12 @@ export default function Blog() {
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
-        <title>Blog — Elaf-ul-Quran Academy</title>
-        <meta name="description" content="Teachings, reflections, and event Q&A from Ustadha Afshan Imran — Nazra, Tajweed, Tafseer, and spiritual guidance for the modern Muslim." />
+        <title>Quran Teachings & Reflections | Elaf-ul-Quran Blog</title>
+        <meta name="description" content="Teachings, reflections and event Q&A from Ustadha Afshan Imran on Nazra, Tajweed, Tafseer and spiritual growth for the modern Muslim." />
         <link rel="canonical" href={`${SITE_URL}/blog`} />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Blog — Elaf-ul-Quran Academy" />
-        <meta property="og:description" content="Teachings, reflections, and event Q&A from Ustadha Afshan Imran." />
+        <meta property="og:title" content="Quran Teachings & Reflections | Elaf-ul-Quran Blog" />
+        <meta property="og:description" content="Teachings, reflections and event Q&A from Ustadha Afshan Imran." />
         <meta property="og:url" content={`${SITE_URL}/blog`} />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
