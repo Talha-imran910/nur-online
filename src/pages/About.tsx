@@ -51,8 +51,8 @@ export default function About() {
               </h2>
               <IslamicDivider className="mt-4 mb-4" opacity={0.2} />
               <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Our mission is to make Quranic education easy, accessible, and inspiring for everyone — 
-                from children to adults, from beginners to advanced learners. We believe every heart 
+                Our mission is to make Quranic education easy, accessible, and inspiring for everyone,
+                from children to adults, from beginners to advanced learners. We believe every heart
                 deserves to connect with the words of Allah ﷻ.
               </p>
             </div>
