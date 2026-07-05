@@ -930,9 +930,10 @@ function ManageLessonsDialog({ course }: { course: Course }) {
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-serif">Manage Lessons — {course.title}</DialogTitle></DialogHeader>
+        <div className="flex justify-end mt-1"><BulkAddLessonsDialog course={course} /></div>
         <div className="space-y-4 mt-2">
           {course.units.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">No lessons yet. Add one from "Add Content".</p>
+            <p className="text-sm text-muted-foreground text-center py-6">No lessons yet. Use "Bulk Add Lessons" or add from "Add Content".</p>
           )}
           {course.units.map((unit) => (
             <div key={unit.id} className="space-y-2">
@@ -1006,9 +1007,27 @@ function BlogManager() {
           <h2 className="font-serif text-2xl font-bold text-foreground">Blog Posts</h2>
           <p className="text-sm text-muted-foreground mt-1">Write teachings, reflections, and event Q&amp;A</p>
         </div>
-        <Button variant="emerald" size="sm" className="gap-1.5" onClick={openNew}>
-          <Plus className="h-4 w-4" /> New Post
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          {posts.length === 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={async () => {
+              const { error } = await createBlogPost({
+                title: "How to Help Your Child Build a Daily Quran Habit",
+                excerpt: "Small, consistent steps matter more than long sessions. Here's how we build the habit with young students.",
+                content: "<p>Consistency over duration — 10-15 focused minutes daily beats one long weekly session. Same time each day so it becomes routine, not a decision. Celebrate small wins, like finishing a page or self-correcting a tajweed mistake, rather than only big milestones. When possible, a parent sitting nearby during practice — even without correcting — helps a child stay focused. End each session on encouragement, not correction, so the child associates practice with something positive rather than pressure.</p>",
+                category: "teaching",
+                isPublished: true,
+              });
+              if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
+              toast({ title: "Demo post added 🌸", description: "Feel free to edit or delete it." });
+              reload();
+            }}>
+              <Plus className="h-4 w-4" /> Insert demo post
+            </Button>
+          )}
+          <Button variant="emerald" size="sm" className="gap-1.5" onClick={openNew}>
+            <Plus className="h-4 w-4" /> New Post
+          </Button>
+        </div>
       </div>
 
       {posts.length === 0 ? (
