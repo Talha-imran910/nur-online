@@ -643,3 +643,141 @@ export async function togglePublishBlogPost(id: string, isPublished: boolean) {
     published_at: isPublished ? (current?.published_at || new Date().toISOString()) : null,
   }).eq("id", id);
 }
+
+// ---------- Bulk lessons ----------
+export interface ParsedBulkLesson {
+  title: string;
+  youtubeUrl: string;
+  videoId: string;
+}
+
+/**
+ * Parse "Title - https://youtube.com/watch?v=ID" lines.
+ * Splits on the URL pattern (NOT on `-`), so titles containing hyphens
+ * (e.g. "Surah Al-Baqarah, Ayah 1-5 - https://…") parse correctly.
+ * Returns { parsed, skipped } — skipped is 1-indexed line numbers.
+ */
+export function parseBulkLessons(text: string): { parsed: ParsedBulkLesson[]; skipped: number[] } {
+  const parsed: ParsedBulkLesson[] = [];
+  const skipped: number[] = [];
+  const urlRe = /(https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?[^\s]*v=|youtu\.be\/)([A-Za-z0-9_-]{6,})[^\s]*)/i;
+  text.split(/\r?\n/).forEach((raw, idx) => {
+    const line = raw.trim();
+    if (!line) return;
+    const m = line.match(urlRe);
+    if (!m) { skipped.push(idx + 1); return; }
+    const url = m[1];
+    const videoId = m[2];
+    // Title = everything before the URL, trimming any trailing " - " separator.
+    let title = line.slice(0, line.indexOf(url)).trim();
+    title = title.replace(/[-–—:|]\s*$/, "").trim();
+    if (!title) { skipped.push(idx + 1); return; }
+    parsed.push({ title, youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`, videoId });
+  });
+  return { parsed, skipped };
+}
+
+export async function bulkInsertLessons(unitId: string, lessons: ParsedBulkLesson[]) {
+  if (lessons.length === 0) return { error: null, count: 0 };
+  const { data: existing } = await supabase.from("lessons").select("sort_order").eq("unit_id", unitId).order("sort_order", { ascending: false }).limit(1);
+  const startOrder = existing && existing[0] ? (Number(existing[0].sort_order) || 0) + 1 : 0;
+  const uuid = () => (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  const rows = lessons.map((l, i) => ({
+    id: uuid(),
+    unit_id: unitId,
+    title: l.title,
+    youtube_url: l.youtubeUrl,
+    duration: "",
+    sort_order: startOrder + i,
+  }));
+  const { error } = await supabase.from("lessons").insert(rows);
+  return { error, count: rows.length };
+}
+
+export async function createUnit(courseId: string, title: string) {
+  const uuid = () => (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  const { data: existing } = await supabase.from("units").select("sort_order").eq("course_id", courseId).order("sort_order", { ascending: false }).limit(1);
+  const sortOrder = existing && existing[0] ? (Number(existing[0].sort_order) || 0) + 1 : 0;
+  const id = uuid();
+  const { error } = await supabase.from("units").insert({ id, course_id: courseId, title: title.trim() || "New Unit", sort_order: sortOrder });
+  return { id, error };
+}
+
+// ---------- Reviews ----------
+export interface Review {
+  id: string;
+  courseId: string;
+  studentId: string;
+  studentName: string;
+  rating: number;
+  comment: string;
+  isApproved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapReview(row: any, nameById?: Map<string, string>): Review {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    studentId: row.student_id,
+    studentName: nameById?.get(row.student_id) || "Student",
+    rating: Number(row.rating) || 0,
+    comment: row.comment || "",
+    isApproved: !!row.is_approved,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+  };
+}
+
+async function hydrateReviewNames(rows: any[]): Promise<Review[]> {
+  if (rows.length === 0) return [];
+  const ids = Array.from(new Set(rows.map((r: any) => r.student_id).filter(Boolean)));
+  const { data: students } = await supabase.from("students").select("id, name, email").in("id", ids);
+  const map = new Map<string, string>();
+  for (const s of students || []) map.set(s.id, s.name || s.email || "Student");
+  return rows.map((r) => mapReview(r, map));
+}
+
+export async function fetchApprovedReviews(courseId: string): Promise<Review[]> {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("course_id", courseId)
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return hydrateReviewNames(data);
+}
+
+export async function fetchMyReviewForCourse(courseId: string, studentId: string): Promise<Review | null> {
+  const { data } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("course_id", courseId)
+    .eq("student_id", studentId)
+    .maybeSingle();
+  return data ? mapReview(data) : null;
+}
+
+export async function fetchAllReviews(): Promise<Review[]> {
+  const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return hydrateReviewNames(data);
+}
+
+export async function submitReview(courseId: string, studentId: string, rating: number, comment: string) {
+  return supabase.from("reviews").upsert(
+    { course_id: courseId, student_id: studentId, rating, comment, is_approved: false, updated_at: new Date().toISOString() },
+    { onConflict: "course_id,student_id" }
+  );
+}
+
+export async function approveReview(id: string) {
+  return supabase.from("reviews").update({ is_approved: true }).eq("id", id);
+}
+
+export async function rejectReview(id: string) {
+  return supabase.from("reviews").delete().eq("id", id);
+}
+
