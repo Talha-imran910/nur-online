@@ -1,11 +1,14 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { subjects, INSTRUCTOR } from "@/lib/mock-data";
-import { fetchCourseById, enrollInCourse, subscribeToTables, type Course } from "@/lib/db";
+import { fetchCourseById, enrollInCourse, fetchApprovedReviews, fetchMyEnrollments } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { SITE_URL } from "@/lib/contact";
+import { formatPrice, CURRENCY_CODE } from "@/lib/currency";
+import CourseReviews from "@/components/reviews/CourseReviews";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Users, BookOpen, PlayCircle, ChevronDown, ChevronRight, Globe, Heart } from "lucide-react";
@@ -18,32 +21,48 @@ export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
   const [openUnits, setOpenUnits] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const currRef = useScrollReveal(0.1);
   const instrRef = useScrollReveal();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUserId(s?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("elaf_user") || "null"); } catch { return null; }
   }, []);
 
-  useEffect(() => {
-    if (!courseId) return;
-    let alive = true;
-    const load = async () => {
-      const c = await fetchCourseById(courseId);
-      if (!alive) return;
-      setCourse(c);
-      setOpenUnits(c?.units.map((u) => u.id) || []);
-      setLoading(false);
-    };
-    load();
-    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
-    return () => { alive = false; unsub(); };
-  }, [courseId]);
+  const { data: course, isLoading } = useQuery({
+    queryKey: ["course", courseId],
+    queryFn: () => (courseId ? fetchCourseById(courseId) : Promise.resolve(null)),
+    enabled: !!courseId,
+    staleTime: 60_000,
+  });
 
-  if (loading) {
+  const { data: approvedReviews = [] } = useQuery({
+    queryKey: ["reviews", courseId],
+    queryFn: () => (courseId ? fetchApprovedReviews(courseId) : Promise.resolve([])),
+    enabled: !!courseId,
+    staleTime: 60_000,
+  });
+
+  const { data: myEnrollments = [] } = useQuery({
+    queryKey: ["enrollments", "mine", userId],
+    queryFn: () => (userId ? fetchMyEnrollments(userId) : Promise.resolve([])),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+  const isEnrolled = !!courseId && myEnrollments.some((e) => e.courseId === courseId);
+
+  useEffect(() => {
+    if (course) setOpenUnits(course.units.map((u) => u.id));
+  }, [course]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar /><div className="flex-1 flex items-center justify-center text-muted-foreground">Loading…</div><Footer />
@@ -70,28 +89,27 @@ export default function CourseDetail() {
   const totalLessons = course.units.reduce((acc, u) => acc + u.lessons.length, 0);
   const toggleUnit = (id: string) => setOpenUnits((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
+  const reviewCount = approvedReviews.length;
+  const avgRating = reviewCount > 0 ? approvedReviews.reduce((s, r) => s + r.rating, 0) / reviewCount : 0;
+
   const handleEnroll = async () => {
-    // 1. Not signed in → send to register, then bounce back here
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast({ title: "Please create an account first", description: "It only takes a moment — then you'll be enrolled automatically." });
       navigate(`/register?redirect=/courses/${course.id}`);
       return;
     }
-
-    // 2. Free course → auto-enroll & go to player
     if (course.isFree) {
       await enrollInCourse(user.id, course.id);
       toast({ title: "Enrolled! 🎉", description: `You're in "${course.title}". Happy learning!` });
       navigate(`/player/${course.id}`);
       return;
     }
-
-    // 3. Paid course → open WhatsApp chat for manual payment
     const { whatsappUrl } = await import("@/lib/contact");
     const who = currentUser ? ` My name: ${currentUser.name}, Email: ${currentUser.email}.` : "";
+    const priceLabel = formatPrice(course.price);
     const url = whatsappUrl(
-      `Assalamu Alaikum! I am interested in enrolling in "${course.title}" ($${course.price}) at Elaf-ul-Quran Academy.${who} Please guide me with the payment & next steps. JazakAllah Khair.`
+      `Assalamu Alaikum! I am interested in enrolling in "${course.title}" (${priceLabel}) at Elaf-ul-Quran Academy.${who} Please guide me with the payment & next steps. JazakAllah Khair.`
     );
     const win = window.open(url, "_blank", "noopener,noreferrer");
     if (!win) {
@@ -99,6 +117,40 @@ export default function CourseDetail() {
     }
     toast({ title: "Opening WhatsApp 💬", description: "Send the message to confirm your enrollment & payment." });
   };
+
+  const courseSchema: any = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.description,
+    provider: {
+      "@type": "Organization",
+      name: "Elaf-ul-Quran Academy",
+      sameAs: SITE_URL,
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "online",
+      instructor: { "@type": "Person", name: INSTRUCTOR.name },
+    },
+    offers: {
+      "@type": "Offer",
+      price: String(course.price || 0),
+      priceCurrency: CURRENCY_CODE,
+      category: course.isFree ? "Free" : "Paid",
+      availability: "https://schema.org/InStock",
+      url: `${SITE_URL}/courses/${course.id}`,
+    },
+  };
+  if (reviewCount > 0) {
+    courseSchema.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(avgRating.toFixed(2)),
+      reviewCount,
+      bestRating: 5,
+      worstRating: 1,
+    };
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -115,30 +167,7 @@ export default function CourseDetail() {
         <meta name="twitter:title" content={course.title} />
         <meta name="twitter:description" content={course.description.slice(0, 200)} />
         <meta name="twitter:image" content={course.thumbnail || `${SITE_URL}/og-image.jpg`} />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Course",
-          name: course.title,
-          description: course.description,
-          provider: {
-            "@type": "Organization",
-            name: "Elaf-ul-Quran Academy",
-            sameAs: SITE_URL,
-          },
-          hasCourseInstance: {
-            "@type": "CourseInstance",
-            courseMode: "online",
-            instructor: { "@type": "Person", name: INSTRUCTOR.name },
-          },
-          offers: {
-            "@type": "Offer",
-            price: String(course.price || 0),
-            priceCurrency: "USD",
-            category: course.isFree ? "Free" : "Paid",
-            availability: "https://schema.org/InStock",
-            url: `${SITE_URL}/courses/${course.id}`,
-          },
-        })}</script>
+        <script type="application/ld+json">{JSON.stringify(courseSchema)}</script>
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
@@ -160,7 +189,7 @@ export default function CourseDetail() {
             <div className="flex gap-2 mb-4">
               {subject && <Badge className="bg-gold/20 text-gold border-gold/30">{subject.icon} {subject.name}</Badge>}
               <Badge className={course.isFree ? "bg-emerald/20 text-emerald-light border-emerald/30" : "bg-gold/20 text-gold border-gold/30"}>
-                {course.isFree ? "Free" : `$${course.price}`}
+                {course.isFree ? "Free" : formatPrice(course.price)}
               </Badge>
               <Badge className="bg-cream/10 text-cream/80 border-cream/20">{course.level}</Badge>
             </div>
@@ -169,11 +198,14 @@ export default function CourseDetail() {
             <div className="mt-6 flex flex-wrap gap-6 text-cream/50 text-sm">
               <span className="flex items-center gap-2"><BookOpen className="h-4 w-4" />{totalLessons} lessons</span>
               <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{course.duration}</span>
-              <span className="flex items-center gap-2"><Star className="h-4 w-4 text-gold" />{course.rating || "—"} rating</span>
+              <span className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-gold" />
+                {reviewCount > 0 ? `${avgRating.toFixed(1)} (${reviewCount})` : "No reviews yet"}
+              </span>
             </div>
             <div className="mt-8 flex gap-4">
               <Button variant="hero" size="lg" className="animate-pulse-glow" onClick={handleEnroll}>
-                {!currentUser ? "Register & Enroll" : course.isFree ? "Enroll Now — Free" : `Buy — $${course.price}`}
+                {!userId ? "Register & Enroll" : course.isFree ? "Enroll Now — Free" : `Buy — ${formatPrice(course.price)}`}
               </Button>
             </div>
           </div>
@@ -219,6 +251,10 @@ export default function CourseDetail() {
                 )}
               </div>
             ))}
+          </div>
+
+          <div className="mt-12">
+            <CourseReviews courseId={course.id} userId={userId} isEnrolled={isEnrolled} />
           </div>
 
           <div ref={instrRef} className="reveal mt-16 glass-card rounded-2xl p-8">

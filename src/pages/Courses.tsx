@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
-import { fetchPublishedCourses, fetchSubjects, subscribeToTables, type Course } from "@/lib/db";
+import { fetchPublishedCourses, fetchSubjects } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -12,25 +13,23 @@ import { SITE_URL } from "@/lib/contact";
 
 export default function Courses() {
   const [search, setSearch] = useState("");
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [activeSubject, setActiveSubject] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      const [data, subs] = await Promise.all([fetchPublishedCourses(), fetchSubjects()]);
-      if (!alive) return;
-      setCourses(data);
-      const usedIds = new Set(data.map((c) => c.subject));
-      setSubjects(subs.filter((s) => usedIds.has(s.id)));
-      setLoading(false);
-    }
-    load();
-    const unsub = subscribeToTables(["courses", "units", "lessons", "subjects"], load);
-    return () => { alive = false; unsub(); };
-  }, []);
+  const { data: courses = [], isLoading } = useQuery({
+    queryKey: ["courses", "published"],
+    queryFn: fetchPublishedCourses,
+    staleTime: 60_000,
+  });
+  const { data: subjectsAll = [] } = useQuery({
+    queryKey: ["subjects"],
+    queryFn: fetchSubjects,
+    staleTime: 5 * 60_000,
+  });
+
+  const subjects = useMemo(() => {
+    const used = new Set(courses.map((c) => c.subject));
+    return subjectsAll.filter((s) => used.has(s.id));
+  }, [subjectsAll, courses]);
 
   const filtered = useMemo(() => {
     let list = courses;
@@ -66,23 +65,14 @@ export default function Courses() {
         <div className="container mx-auto">
           {subjects.length > 0 && (
             <div className="flex flex-wrap gap-2 justify-center mb-8">
-              <Button
-                variant={activeSubject === "all" ? "emerald" : "outline"}
-                size="sm"
-                onClick={() => setActiveSubject("all")}
-              >All</Button>
+              <Button variant={activeSubject === "all" ? "emerald" : "outline"} size="sm" onClick={() => setActiveSubject("all")}>All</Button>
               {subjects.map((s) => (
-                <Button
-                  key={s.id}
-                  variant={activeSubject === s.id ? "emerald" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveSubject(s.id)}
-                >{s.name}</Button>
+                <Button key={s.id} variant={activeSubject === s.id ? "emerald" : "outline"} size="sm" onClick={() => setActiveSubject(s.id)}>{s.name}</Button>
               ))}
             </div>
           )}
 
-          {loading ? (
+          {isLoading ? (
             <p className="text-center text-muted-foreground py-12">Loading courses...</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">

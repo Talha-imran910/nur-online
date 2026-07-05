@@ -1,23 +1,19 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import CourseCard from "@/components/CourseCard";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-animations";
-import { fetchPublishedCourses, subscribeToTables, type Course } from "@/lib/db";
+import { fetchPublishedCourses } from "@/lib/db";
 
 export default function FeaturedCourses() {
   const titleRef = useScrollReveal();
-  const gridRef = useScrollReveal(0.1);
-  const [featured, setFeatured] = useState<Course[]>([]);
-
-  useEffect(() => {
-    let alive = true;
-    const load = () => fetchPublishedCourses().then((c) => alive && setFeatured(c.slice(0, 3)));
-    load();
-    const unsub = subscribeToTables(["courses", "units", "lessons"], load);
-    return () => { alive = false; unsub(); };
-  }, []);
+  const { data: courses = [] } = useQuery({
+    queryKey: ["courses", "published"],
+    queryFn: fetchPublishedCourses,
+    staleTime: 60_000,
+  });
+  const featured = courses.slice(0, 3);
 
   return (
     <section className="py-20 bg-secondary/30 islamic-overlay relative">

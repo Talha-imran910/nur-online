@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, Users, Clock, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatPrice } from "@/lib/currency";
 
 interface Course {
   id: string;
@@ -47,7 +48,7 @@ export default function CourseCard({ course }: CourseCardProps) {
             <Badge className={isFree
               ? "bg-emerald/90 text-cream border-none"
               : "bg-gold/90 text-navy border-none font-bold"}>
-              {isFree ? "Free" : `$${course.price}`}
+              {isFree ? "Free" : formatPrice(course.price)}
             </Badge>
             {course.level && (
               <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm text-foreground">
