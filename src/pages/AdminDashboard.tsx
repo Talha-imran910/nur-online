@@ -104,7 +104,7 @@ export default function AdminDashboard() {
   const handleUpdateCoursePrice = async (id: string, price: number, isFree: boolean) => {
     const { error } = await updateCoursePrice(id, price, isFree);
     if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Price Updated 💰", description: isFree ? "Course set to Free." : `Price set to $${price}.` });
+    toast({ title: "Price Updated 💰", description: isFree ? "Course set to Free." : `Price set to Rs ${price}.` });
   };
 
   return (
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
                         <div className="flex flex-wrap gap-2 mt-2">
                           <Badge variant="secondary" className="text-[10px]">📚 {c.lessons} lessons</Badge>
                           <Badge className={`text-[10px] ${c.isFree ? "bg-primary/10 text-primary" : "bg-gold/10 text-gold"}`}>
-                            {c.isFree ? "Free" : `$${c.price}`}
+                            {c.isFree ? "Free" : `Rs ${Math.round(Number(c.price) || 0).toLocaleString("en-PK")}`}
                           </Badge>
                         </div>
                       </div>
