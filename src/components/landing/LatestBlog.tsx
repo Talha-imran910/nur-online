@@ -1,24 +1,21 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-animations";
-import { fetchPublishedBlogPosts, subscribeToTables, type BlogPost } from "@/lib/db";
+import { fetchPublishedBlogPosts } from "@/lib/db";
 import BlogPostCard from "@/components/BlogPostCard";
 
 export default function LatestBlog() {
   const titleRef = useScrollReveal();
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const { data: posts = [] } = useQuery({
+    queryKey: ["blog", "published"],
+    queryFn: fetchPublishedBlogPosts,
+    staleTime: 60_000,
+  });
+  const latest = posts.slice(0, 3);
 
-  useEffect(() => {
-    let alive = true;
-    const load = () => fetchPublishedBlogPosts().then((p) => alive && setPosts(p.slice(0, 3)));
-    load();
-    const unsub = subscribeToTables(["blog_posts"], load);
-    return () => { alive = false; unsub(); };
-  }, []);
-
-  if (posts.length === 0) return null;
+  if (latest.length === 0) return null;
 
   return (
     <section className="py-20 px-4">
@@ -30,7 +27,7 @@ export default function LatestBlog() {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((p) => <BlogPostCard key={p.id} post={p} />)}
+          {latest.map((p) => <BlogPostCard key={p.id} post={p} />)}
         </div>
         <div className="mt-10 text-center">
           <Link to="/blog">

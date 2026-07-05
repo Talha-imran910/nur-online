@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import DOMPurify from "dompurify";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BlogPostCard from "@/components/BlogPostCard";
-import { fetchBlogPostBySlug, fetchPublishedBlogPosts, subscribeToTables, type BlogPost } from "@/lib/db";
+import { fetchBlogPostBySlug, fetchPublishedBlogPosts, type BlogPost } from "@/lib/db";
 import { INSTRUCTOR } from "@/lib/mock-data";
 import { SITE_URL } from "@/lib/contact";
 import { Badge } from "@/components/ui/badge";
@@ -22,31 +23,28 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 export default function BlogPost() {
   const { slug } = useParams();
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [more, setMore] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!slug) return;
-    let alive = true;
-    const load = async () => {
-      const [p, all] = await Promise.all([fetchBlogPostBySlug(slug), fetchPublishedBlogPosts()]);
-      if (!alive) return;
-      setPost(p);
-      setMore(all.filter((x) => x.slug !== slug).slice(0, 3));
-      setLoading(false);
-    };
-    load();
-    const unsub = subscribeToTables(["blog_posts"], load);
-    return () => { alive = false; unsub(); };
-  }, [slug]);
+  const { data: post, isLoading } = useQuery({
+    queryKey: ["blog", "post", slug],
+    queryFn: () => (slug ? fetchBlogPostBySlug(slug) : Promise.resolve(null)),
+    enabled: !!slug,
+    staleTime: 60_000,
+  });
+
+  const { data: allPosts = [] } = useQuery({
+    queryKey: ["blog", "published"],
+    queryFn: fetchPublishedBlogPosts,
+    staleTime: 60_000,
+  });
+
+  const more = useMemo(() => allPosts.filter((x) => x.slug !== slug).slice(0, 3), [allPosts, slug]);
 
   const cleanHtml = useMemo(
     () => (post?.content ? DOMPurify.sanitize(post.content, { ADD_ATTR: ["target", "rel"] }) : ""),
     [post?.content]
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar /><div className="flex-1 flex items-center justify-center text-muted-foreground">Loading…</div><Footer />

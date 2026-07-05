@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BlogPostCard from "@/components/BlogPostCard";
-import { fetchPublishedBlogPosts, subscribeToTables, type BlogPost } from "@/lib/db";
+import { fetchPublishedBlogPosts } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -19,22 +20,14 @@ const CATEGORIES = [
 ];
 
 export default function Blog() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState("all");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let alive = true;
-    const load = () => fetchPublishedBlogPosts().then((p) => {
-      if (!alive) return;
-      setPosts(p);
-      setLoading(false);
-    });
-    load();
-    const unsub = subscribeToTables(["blog_posts"], load);
-    return () => { alive = false; unsub(); };
-  }, []);
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ["blog", "published"],
+    queryFn: fetchPublishedBlogPosts,
+    staleTime: 60_000,
+  });
 
   const filtered = useMemo(() => {
     let list = posts;
@@ -80,7 +73,7 @@ export default function Blog() {
             ))}
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <p className="text-center text-muted-foreground py-12">Loading posts...</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
