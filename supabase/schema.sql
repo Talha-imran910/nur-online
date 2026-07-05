@@ -396,3 +396,77 @@ do $$ begin
   alter publication supabase_realtime add table public.blog_posts;
 exception when duplicate_object then null; when others then null;
 end $$;
+
+-- ======================================================================
+-- 11. REVIEWS ----------------------------------------------------------
+-- ======================================================================
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  course_id text references public.courses(id) on delete cascade not null,
+  student_id uuid references auth.users(id) on delete cascade not null,
+  rating int not null check (rating between 1 and 5),
+  comment text default '',
+  is_approved boolean not null default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (course_id, student_id)
+);
+
+grant select on public.reviews to anon, authenticated;
+grant insert, update, delete on public.reviews to authenticated;
+grant all on public.reviews to service_role;
+
+alter table public.reviews enable row level security;
+
+-- Public + author + teacher SELECT
+drop policy if exists "reviews_public_read"      on public.reviews;
+drop policy if exists "reviews_owner_read"       on public.reviews;
+drop policy if exists "reviews_teacher_read"     on public.reviews;
+drop policy if exists "reviews_enrolled_insert"  on public.reviews;
+drop policy if exists "reviews_owner_update"     on public.reviews;
+drop policy if exists "reviews_teacher_update"   on public.reviews;
+drop policy if exists "reviews_teacher_delete"   on public.reviews;
+
+create policy "reviews_public_read" on public.reviews
+  for select using (is_approved = true);
+
+create policy "reviews_owner_read" on public.reviews
+  for select to authenticated using (student_id = auth.uid());
+
+create policy "reviews_teacher_read" on public.reviews
+  for select to authenticated using (public.has_role(auth.uid(), 'teacher'));
+
+create policy "reviews_enrolled_insert" on public.reviews
+  for insert to authenticated
+  with check (
+    student_id = auth.uid()
+    and exists (
+      select 1 from public.enrollments e
+      where e.student_id = auth.uid() and e.course_id = reviews.course_id
+    )
+  );
+
+create policy "reviews_owner_update" on public.reviews
+  for update to authenticated
+  using (student_id = auth.uid())
+  with check (student_id = auth.uid() and is_approved = false);
+
+create policy "reviews_teacher_update" on public.reviews
+  for update to authenticated
+  using (public.has_role(auth.uid(), 'teacher'))
+  with check (public.has_role(auth.uid(), 'teacher'));
+
+create policy "reviews_teacher_delete" on public.reviews
+  for delete to authenticated
+  using (public.has_role(auth.uid(), 'teacher'));
+
+drop trigger if exists reviews_set_updated_at on public.reviews;
+create trigger reviews_set_updated_at
+  before update on public.reviews
+  for each row execute function public.set_updated_at();
+
+do $$ begin
+  alter publication supabase_realtime add table public.reviews;
+exception when duplicate_object then null; when others then null;
+end $$;
+
