@@ -25,6 +25,8 @@ import {
   type BlogPost, type BlogPostInput, type QaItem,
 } from "@/lib/db";
 import RichTextEditor from "@/components/RichTextEditor";
+import ReviewsTab from "@/components/admin/ReviewsTab";
+import BulkAddLessonsDialog from "@/components/admin/BulkAddLessonsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -161,6 +163,7 @@ export default function AdminDashboard() {
               { value: "courses", icon: BookOpen, label: "Courses" },
               { value: "upload", icon: Upload, label: "Add Content" },
               { value: "blog", icon: FileText, label: "Blog" },
+              { value: "reviews", icon: Star, label: "Reviews" },
               { value: "live", icon: Radio, label: "Go Live" },
               { value: "students", icon: Users, label: "Students" },
               { value: "settings", icon: Settings, label: "Settings" },
@@ -306,6 +309,12 @@ export default function AdminDashboard() {
           <TabsContent value="blog" className="animate-fade-in">
             <BlogManager />
           </TabsContent>
+
+          {/* REVIEWS */}
+          <TabsContent value="reviews" className="animate-fade-in">
+            <ReviewsTab courseTitleById={Object.fromEntries(courseList.map((c) => [c.id, c.title]))} />
+          </TabsContent>
+
 
           {/* GO LIVE */}
           <TabsContent value="live" className="animate-fade-in">
