@@ -470,3 +470,40 @@ do $$ begin
 exception when duplicate_object then null; when others then null;
 end $$;
 
+
+-- ============================================================
+-- LESSON COMPLETIONS (real per-lesson checkmarks + streak feed)
+-- Depends on: public.lessons (id text), public.has_role().
+-- ============================================================
+create table if not exists public.lesson_completions (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references auth.users(id) on delete cascade not null,
+  lesson_id text references public.lessons(id) on delete cascade not null,
+  completed_at timestamptz default now(),
+  unique (student_id, lesson_id)
+);
+
+grant select, insert, delete on public.lesson_completions to authenticated;
+grant all on public.lesson_completions to service_role;
+
+alter table public.lesson_completions enable row level security;
+
+drop policy if exists "lesson_completions_own_read" on public.lesson_completions;
+create policy "lesson_completions_own_read" on public.lesson_completions
+  for select to authenticated
+  using (student_id = auth.uid() or public.has_role(auth.uid(), 'teacher'));
+
+drop policy if exists "lesson_completions_own_insert" on public.lesson_completions;
+create policy "lesson_completions_own_insert" on public.lesson_completions
+  for insert to authenticated
+  with check (student_id = auth.uid());
+
+drop policy if exists "lesson_completions_own_delete" on public.lesson_completions;
+create policy "lesson_completions_own_delete" on public.lesson_completions
+  for delete to authenticated
+  using (student_id = auth.uid());
+
+do $$ begin
+  alter publication supabase_realtime add table public.lesson_completions;
+exception when duplicate_object then null; when others then null;
+end $$;

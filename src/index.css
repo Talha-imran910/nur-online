@@ -113,7 +113,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: url('/src/assets/islamic-pattern.jpg') repeat;
+    background: url('/src/assets/islamic-pattern.webp') repeat;
     background-size: 200px;
     opacity: 0.04;
     pointer-events: none;

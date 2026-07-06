@@ -2,12 +2,13 @@ import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import elafLogo from "@/assets/elaf-logo.png";
+import elafLogo from "@/assets/elaf-logo.webp";
 
 const navLinks = [
   { label: "Home", path: "/" },
   { label: "Courses", path: "/courses" },
   { label: "Blog", path: "/blog" },
+  { label: "FAQ", path: "/faq" },
   { label: "About", path: "/about" },
 ];
 

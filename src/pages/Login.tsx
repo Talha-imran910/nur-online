@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Navbar from "@/components/Navbar";
-import elafLogo from "@/assets/elaf-logo.png";
+import elafLogo from "@/assets/elaf-logo.webp";
 import { ArabicQuote } from "@/components/IslamicDecorations";
 import { Eye, EyeOff, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";

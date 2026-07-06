@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
-import elafLogo from "@/assets/elaf-logo.png";
+import elafLogo from "@/assets/elaf-logo.webp";
 import { IslamicDivider } from "@/components/IslamicDecorations";
 import { whatsappUrl } from "@/lib/contact";
 
 const SOCIAL_LINKS = [
   { label: "WhatsApp", emoji: "💬", href: whatsappUrl("Assalamu Alaikum!") },
-  { label: "YouTube", emoji: "📺", href: "https://youtube.com/@elafulquran" },
-  { label: "Facebook", emoji: "📘", href: "https://facebook.com/elafulquran" },
-  { label: "Instagram", emoji: "📸", href: "https://instagram.com/elafulquran" },
+  { label: "YouTube", emoji: "📺", href: "https://www.youtube.com/@Elafulquran" },
+  { label: "Facebook", emoji: "📘", href: "https://www.facebook.com/profile.php?id=100069848931370" },
 ];
 
 export default function Footer() {
@@ -50,6 +49,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link to="/courses" className="hover:text-gold transition-colors">All Courses</Link></li>
               <li><Link to="/blog" className="hover:text-gold transition-colors">Blog</Link></li>
+              <li><Link to="/faq" className="hover:text-gold transition-colors">FAQ</Link></li>
               <li><Link to="/about" className="hover:text-gold transition-colors">About Us</Link></li>
               <li><Link to="/login" className="hover:text-gold transition-colors">Student Login</Link></li>
               <li><Link to="/privacy-policy" className="hover:text-gold transition-colors">Privacy Policy</Link></li>

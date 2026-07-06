@@ -189,6 +189,33 @@ export async function fetchCourseById(id: string): Promise<Course | null> {
   return mapCourseRow(data, units);
 }
 
+export async function fetchRelatedCourses(courseId: string, subjectId: string, limit = 3): Promise<Course[]> {
+  if (!subjectId) {
+    // Fall back to any other published courses.
+    const { data } = await supabase.from("courses").select("*").eq("is_published", true).neq("id", courseId).limit(limit);
+    return hydrateCourses(data || []);
+  }
+  const { data } = await supabase
+    .from("courses").select("*")
+    .eq("is_published", true).eq("subject_id", subjectId).neq("id", courseId)
+    .limit(limit);
+  let rows = data || [];
+  if (rows.length < limit) {
+    // Top up from other published courses so the section is never empty.
+    const need = limit - rows.length;
+    const exclude = [courseId, ...rows.map((r: any) => r.id)];
+    const { data: extra } = await supabase
+      .from("courses").select("*")
+      .eq("is_published", true)
+      .not("id", "in", `(${exclude.map((id) => `"${id}"`).join(",")})`)
+      .limit(need);
+    rows = rows.concat(extra || []);
+  }
+  return hydrateCourses(rows);
+}
+
+
+
 export async function fetchUnitsForCourse(courseId: string): Promise<Unit[]> {
   const { data: units } = await supabase
     .from("units")
@@ -288,6 +315,7 @@ export async function addLesson(input: {
   lessonTitle: string;
   youtubeUrl: string;
   duration: string;
+  pdfUrl?: string | null;
 }) {
   const uuid = () => (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
   // Find or create a unit for the course
@@ -317,6 +345,7 @@ export async function addLesson(input: {
     unit_id: unitId,
     title: input.lessonTitle,
     youtube_url: input.youtubeUrl,
+    pdf_url: input.pdfUrl?.trim() || null,
     duration: input.duration,
     sort_order: 0,
   });
@@ -324,6 +353,68 @@ export async function addLesson(input: {
 
 export async function removeLesson(lessonId: string) {
   return supabase.from("lessons").delete().eq("id", lessonId);
+}
+
+export interface UpdateLessonInput {
+  title?: string;
+  youtubeUrl?: string;
+  duration?: string;
+  pdfUrl?: string | null;
+}
+
+export async function updateLesson(lessonId: string, input: UpdateLessonInput) {
+  const patch: Record<string, any> = {};
+  if (input.title !== undefined) {
+    const t = input.title.trim();
+    if (!t) return { error: { message: "Lesson title is required" } as any };
+    patch.title = t;
+  }
+  if (input.youtubeUrl !== undefined) patch.youtube_url = input.youtubeUrl.trim();
+  if (input.duration !== undefined) patch.duration = input.duration.trim();
+  if (input.pdfUrl !== undefined) patch.pdf_url = input.pdfUrl?.trim() || null;
+  return supabase.from("lessons").update(patch).eq("id", lessonId);
+}
+
+// ---------- Lesson completions ----------
+export async function fetchMyLessonCompletions(studentId: string, lessonIds?: string[]): Promise<string[]> {
+  let q = supabase.from("lesson_completions").select("lesson_id").eq("student_id", studentId);
+  if (lessonIds && lessonIds.length > 0) q = q.in("lesson_id", lessonIds);
+  const { data, error } = await q;
+  if (error || !data) return [];
+  return data.map((r: any) => r.lesson_id);
+}
+
+/**
+ * Idempotently mark a lesson complete for a student, then recompute the
+ * enrollment progress % from the real number of completed lessons.
+ */
+export async function markLessonComplete(
+  studentId: string,
+  courseId: string,
+  lessonId: string,
+  totalLessonIds: string[]
+) {
+  // Insert-ignore via upsert on the unique (student_id, lesson_id) index.
+  await supabase
+    .from("lesson_completions")
+    .upsert({ student_id: studentId, lesson_id: lessonId }, { onConflict: "student_id,lesson_id", ignoreDuplicates: true });
+
+  const total = totalLessonIds.length;
+  let percent = 0;
+  if (total > 0) {
+    const { data } = await supabase
+      .from("lesson_completions")
+      .select("lesson_id")
+      .eq("student_id", studentId)
+      .in("lesson_id", totalLessonIds);
+    percent = Math.min(100, Math.round(((data?.length || 0) / total) * 100));
+  }
+  await supabase
+    .from("enrollments")
+    .update({ progress: percent })
+    .eq("student_id", studentId)
+    .eq("course_id", courseId);
+  return { progress: percent };
 }
 
 // ---------- Enrollments ----------
