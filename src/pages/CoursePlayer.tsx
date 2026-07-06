@@ -85,9 +85,12 @@ export default function CoursePlayer() {
       document.removeEventListener("keydown", onKey);
     };
   }, []);
+  // Reset to Video tab whenever the lesson changes.
+  useEffect(() => { setActiveTab("video"); }, [currentLessonId]);
 
   if (!course) return <div className="p-8 text-center font-serif text-2xl">Loading…</div>;
 
+  
   const allLessons = course.units.flatMap((u) => u.lessons);
   const currentLesson = allLessons.find((l) => l.id === currentLessonId);
   const currentIndex = allLessons.findIndex((l) => l.id === currentLessonId);
@@ -96,8 +99,7 @@ export default function CoursePlayer() {
 
 const notesPreviewUrl = toDrivePreviewUrl(currentLesson?.pdfUrl || "");
 
-  // Reset to Video tab whenever the lesson changes.
-  useEffect(() => { setActiveTab("video"); }, [currentLessonId]);
+
 
   const getYouTubeId = (url: string) => {
     const match = url.match(/(?:v=|\/|youtu\.be\/)([\w-]{11})/);
