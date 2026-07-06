@@ -94,10 +94,7 @@ export default function CoursePlayer() {
   const totalLessons = allLessons.length;
   const progressPercent = totalLessons === 0 ? 0 : (completedLessons.length / totalLessons) * 100;
 
-  const notesPreviewUrl = useMemo(
-    () => toDrivePreviewUrl(currentLesson?.pdfUrl || ""),
-    [currentLesson?.pdfUrl]
-  );
+const notesPreviewUrl = toDrivePreviewUrl(currentLesson?.pdfUrl || "");
 
   // Reset to Video tab whenever the lesson changes.
   useEffect(() => { setActiveTab("video"); }, [currentLessonId]);
