@@ -13,6 +13,7 @@ import {
   deleteCourse,
   addLesson,
   removeLesson,
+  updateLesson,
   teacherEnroll,
   teacherUnenroll,
   subscribeToTables,
