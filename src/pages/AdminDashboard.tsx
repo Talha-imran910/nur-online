@@ -1018,8 +1018,12 @@ function ManageLessonsDialog({ course }: { course: Course }) {
                 <div key={l.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{l.title}</p>
-                    <p className="text-[11px] text-muted-foreground">{l.duration}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {l.duration}
+                      {l.pdfUrl ? <span className="ml-2 inline-flex items-center gap-1 text-gold">📄 Notes</span> : null}
+                    </p>
                   </div>
+                  <EditLessonDialog lesson={{ id: l.id, title: l.title, youtubeUrl: l.youtubeUrl, duration: l.duration, pdfUrl: l.pdfUrl }} />
                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0" onClick={() => handleRemove(l.id, l.title)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
