@@ -42,7 +42,7 @@ import {
   Radio, HelpCircle, Trash2, DollarSign, Image, FileUp, Settings,
   FileText, X as XIcon,
 } from "lucide-react";
-import elafLogo from "@/assets/elaf-logo.png";
+import elafLogo from "@/assets/elaf-logo.webp";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useScrollReveal } from "@/hooks/use-animations";
 import { useToast } from "@/hooks/use-toast";
@@ -746,16 +746,17 @@ function AddLessonDialog({ courses }: { courses: Course[] }) {
   const [title, setTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [duration, setDuration] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!courseId) { toast({ title: "Please select a course" }); return; }
-    const { error } = await addLesson({ courseId, lessonTitle: title, youtubeUrl, duration: duration || "TBD" });
+    const { error } = await addLesson({ courseId, lessonTitle: title, youtubeUrl, duration: duration || "TBD", pdfUrl: pdfUrl || null });
     if (error) { toast({ title: "Add failed", description: error.message, variant: "destructive" }); return; }
     const course = courses.find((c) => c.id === courseId);
     toast({ title: "Lesson Added! ✅", description: `"${title}" added to ${course?.title}.` });
     setOpen(false);
-    setTitle(""); setYoutubeUrl(""); setDuration(""); setCourseId("");
+    setTitle(""); setYoutubeUrl(""); setDuration(""); setPdfUrl(""); setCourseId("");
   };
 
   return (
@@ -769,7 +770,7 @@ function AddLessonDialog({ courses }: { courses: Course[] }) {
           <p className="text-xs text-muted-foreground mt-1">Add a video lesson</p>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-serif text-xl">Add New Lesson 📹</DialogTitle></DialogHeader>
         <form onSubmit={handleSave} className="space-y-4 mt-2">
           <div className="space-y-2">
@@ -787,10 +788,83 @@ function AddLessonDialog({ courses }: { courses: Course[] }) {
               <Input placeholder="https://youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} required />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Notes (Google Drive link) — optional</Label>
+            <Input
+              placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+              value={pdfUrl}
+              onChange={(e) => setPdfUrl(e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Upload your PDF to Google Drive → share as "Anyone with the link can view" (viewers can't download / print / copy) → paste the link here. Students see it as a read-only preview inside the lesson.
+            </p>
+          </div>
           <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 25 minutes" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
           <div className="flex gap-2 pt-2">
             <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
             <Button type="submit" variant="emerald" className="flex-1"><Save className="h-4 w-4 mr-1" /> Add Lesson</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ========== EDIT LESSON ========== */
+function EditLessonDialog({ lesson }: { lesson: { id: string; title: string; youtubeUrl: string; duration: string; pdfUrl?: string | null } }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(lesson.title);
+  const [youtubeUrl, setYoutubeUrl] = useState(lesson.youtubeUrl);
+  const [duration, setDuration] = useState(lesson.duration);
+  const [pdfUrl, setPdfUrl] = useState(lesson.pdfUrl || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTitle(lesson.title);
+      setYoutubeUrl(lesson.youtubeUrl);
+      setDuration(lesson.duration);
+      setPdfUrl(lesson.pdfUrl || "");
+    }
+  }, [open, lesson]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const { error } = await updateLesson(lesson.id, { title, youtubeUrl, duration, pdfUrl });
+    setSaving(false);
+    if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Lesson updated ✅" });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" aria-label="Edit lesson">
+          <Edit className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="font-serif text-xl">Edit Lesson ✏️</DialogTitle></DialogHeader>
+        <form onSubmit={handleSave} className="space-y-4 mt-2">
+          <div className="space-y-2"><Label>Lesson Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
+          <div className="space-y-2">
+            <Label>YouTube Video Link *</Label>
+            <Input placeholder="https://youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Notes (Google Drive link) — optional</Label>
+            <Input placeholder="https://drive.google.com/file/d/.../view?usp=sharing" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Set the Drive file to "Anyone with the link can view" and turn on "Viewers cannot download, print, or copy" for view-only PDFs.
+            </p>
+          </div>
+          <div className="space-y-2"><Label>Duration</Label><Input placeholder="e.g., 25 minutes" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
+          <div className="flex gap-2 pt-2">
+            <DialogClose asChild><Button type="button" variant="outline" className="flex-1">Cancel</Button></DialogClose>
+            <Button type="submit" variant="emerald" className="flex-1" disabled={saving}><Save className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Save"}</Button>
           </div>
         </form>
       </DialogContent>

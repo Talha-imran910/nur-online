@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import aboutMosque from "@/assets/about-mosque.jpg";
-import elafLogo from "@/assets/elaf-logo.png";
+import elafLogo from "@/assets/elaf-logo.webp";
 import { BookOpen, Heart, Users, Award, Globe, Clock, GraduationCap, Baby } from "lucide-react";
 import { INSTRUCTOR } from "@/lib/mock-data";
 import { useScrollReveal } from "@/hooks/use-animations";

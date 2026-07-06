@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, PlayCircle, CheckCircle, LogOut } from "lucide-react";
-import elafLogo from "@/assets/elaf-logo.png";
+import elafLogo from "@/assets/elaf-logo.webp";
 import AssignmentSubmission from "@/components/AssignmentSubmission";
 import LiveClassBanner from "@/components/LiveClassBanner";
 import WhatsAppButton from "@/components/WhatsAppButton";

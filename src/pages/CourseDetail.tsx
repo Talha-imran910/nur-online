@@ -4,7 +4,8 @@ import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { subjects, INSTRUCTOR } from "@/lib/mock-data";
-import { fetchCourseById, enrollInCourse, fetchApprovedReviews, fetchMyEnrollments } from "@/lib/db";
+import { fetchCourseById, enrollInCourse, fetchApprovedReviews, fetchMyEnrollments, fetchRelatedCourses } from "@/lib/db";
+import CourseCard from "@/components/CourseCard";
 import { supabase } from "@/integrations/supabase/client";
 import { SITE_URL } from "@/lib/contact";
 import { formatPrice, CURRENCY_CODE } from "@/lib/currency";
@@ -57,6 +58,13 @@ export default function CourseDetail() {
     staleTime: 30_000,
   });
   const isEnrolled = !!courseId && myEnrollments.some((e) => e.courseId === courseId);
+
+  const { data: relatedCourses = [] } = useQuery({
+    queryKey: ["courses", "related", courseId, course?.subject],
+    queryFn: () => (courseId ? fetchRelatedCourses(courseId, course?.subject || "", 3) : Promise.resolve([])),
+    enabled: !!courseId && !!course,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     if (course) setOpenUnits(course.units.map((u) => u.id));
@@ -277,6 +285,19 @@ export default function CourseDetail() {
           <p className="text-xs text-muted-foreground text-center mt-1 italic">"Remember Me, and I will remember you" — Quran 2:152</p>
         </div>
       </section>
+
+      {relatedCourses.length > 0 && (
+        <section className="pb-20 px-4">
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="font-serif text-2xl md:text-3xl font-bold text-foreground text-center">You might also like</h2>
+            <IslamicDivider className="mb-8" opacity={0.15} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedCourses.map((c) => <CourseCard key={c.id} course={c} />)}
+            </div>
+          </div>
+        </section>
+      )}
+
       <Footer />
     </div>
   );

@@ -49,6 +49,7 @@ export default async function handler(): Promise<Response> {
     urlEntry(`${SITE}/`, null, "weekly", "1.0"),
     urlEntry(`${SITE}/courses`, null, "weekly", "0.9"),
     urlEntry(`${SITE}/about`, null, "monthly", "0.7"),
+    urlEntry(`${SITE}/faq`, null, "monthly", "0.7"),
     urlEntry(`${SITE}/register`, null, "monthly", "0.6"),
     urlEntry(`${SITE}/privacy-policy`, null, "yearly", "0.3"),
   ];

@@ -9,6 +9,7 @@ import BlogPostCard from "@/components/BlogPostCard";
 import { fetchBlogPostBySlug, fetchPublishedBlogPosts, type BlogPost } from "@/lib/db";
 import { INSTRUCTOR } from "@/lib/mock-data";
 import { SITE_URL } from "@/lib/contact";
+import ShareButtons from "@/components/blog/ShareButtons";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, ArrowLeft } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -166,6 +167,10 @@ export default function BlogPost() {
             className="prose prose-emerald max-w-none prose-headings:font-serif prose-headings:text-foreground prose-a:text-gold prose-strong:text-foreground prose-blockquote:border-l-primary prose-img:rounded-xl"
             dangerouslySetInnerHTML={{ __html: cleanHtml }}
           />
+
+          <div className="mt-8 pt-6 border-t border-border/50">
+            <ShareButtons url={canonical} title={post.title} />
+          </div>
 
           {post.category === "event-qa" && post.qaItems && post.qaItems.length > 0 && (
             <div className="mt-12">

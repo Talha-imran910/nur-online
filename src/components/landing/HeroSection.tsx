@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Play, Users, Award, Star } from "lucide-react";
 import { useScrollReveal, useCountUp } from "@/hooks/use-animations";
-import heroMosque from "@/assets/hero-mosque.jpg";
-import elafLogo from "@/assets/elaf-logo.png";
+import heroMosque from "@/assets/hero-mosque.webp";
+import elafLogo from "@/assets/elaf-logo.webp";
 
 export default function HeroSection() {
   const statsRef = useScrollReveal(0.3);

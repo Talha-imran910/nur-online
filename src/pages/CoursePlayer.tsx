@@ -1,10 +1,21 @@
 import { useParams, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { sampleQuiz } from "@/lib/mock-data";
-import { fetchCourseById, subscribeToTables, type Course } from "@/lib/db";
+import {
+  fetchCourseById,
+  subscribeToTables,
+  fetchMyLessonCompletions,
+  markLessonComplete,
+  type Course,
+} from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
+import { toDrivePreviewUrl } from "@/lib/drive";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle, ArrowLeft, ShieldAlert } from "lucide-react";
+import {
+  CheckCircle, PlayCircle, ChevronLeft, ChevronRight, HelpCircle,
+  ArrowLeft, ShieldAlert, FileText, Video as VideoIcon,
+} from "lucide-react";
 
 export default function CoursePlayer() {
   const { courseId } = useParams();
@@ -12,14 +23,22 @@ export default function CoursePlayer() {
   const [currentUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("elaf_user") || "{}"); } catch { return {}; }
   });
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [currentLessonId, setCurrentLessonId] = useState("");
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [activeTab, setActiveTab] = useState<"video" | "notes">("video");
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUserId(s?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!courseId) return;
@@ -37,6 +56,14 @@ export default function CoursePlayer() {
     return () => { alive = false; unsub(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
+
+  // Load real per-lesson completions once we know the user + course.
+  useEffect(() => {
+    if (!userId || !course) return;
+    const ids = course.units.flatMap((u) => u.lessons.map((l) => l.id));
+    if (ids.length === 0) return;
+    fetchMyLessonCompletions(userId, ids).then(setCompletedLessons);
+  }, [userId, course]);
 
   useEffect(() => {
     const onVis = () => setHidden(document.visibilityState !== "visible");
@@ -67,13 +94,27 @@ export default function CoursePlayer() {
   const totalLessons = allLessons.length;
   const progressPercent = totalLessons === 0 ? 0 : (completedLessons.length / totalLessons) * 100;
 
+  const notesPreviewUrl = useMemo(
+    () => toDrivePreviewUrl(currentLesson?.pdfUrl || ""),
+    [currentLesson?.pdfUrl]
+  );
+
+  // Reset to Video tab whenever the lesson changes.
+  useEffect(() => { setActiveTab("video"); }, [currentLessonId]);
+
   const getYouTubeId = (url: string) => {
     const match = url.match(/(?:v=|\/|youtu\.be\/)([\w-]{11})/);
     return match ? match[1] : "";
   };
 
-  const markComplete = () => {
-    if (!completedLessons.includes(currentLessonId)) setCompletedLessons((p) => [...p, currentLessonId]);
+  const markComplete = async () => {
+    if (!completedLessons.includes(currentLessonId)) {
+      setCompletedLessons((p) => [...p, currentLessonId]);
+      if (userId && courseId) {
+        const ids = allLessons.map((l) => l.id);
+        markLessonComplete(userId, courseId, currentLessonId, ids).catch(() => {});
+      }
+    }
     if (currentIndex < totalLessons - 1) {
       setCurrentLessonId(allLessons[currentIndex + 1].id);
       setShowQuiz(false); setQuizSubmitted(false); setQuizAnswers({});
@@ -108,7 +149,28 @@ export default function CoursePlayer() {
 
       <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
         <div className="flex-1 flex flex-col overflow-y-auto">
-          {currentLesson && !showQuiz && (
+          {currentLesson && !showQuiz && notesPreviewUrl && (
+            <div className="bg-navy-light border-b border-cream/10 px-3 sm:px-4 flex gap-1">
+              <button
+                onClick={() => setActiveTab("video")}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors min-h-[44px] flex items-center gap-2 ${
+                  activeTab === "video" ? "border-gold text-cream" : "border-transparent text-cream/50 hover:text-cream/80"
+                }`}
+              >
+                <VideoIcon className="h-4 w-4" /> Video
+              </button>
+              <button
+                onClick={() => setActiveTab("notes")}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors min-h-[44px] flex items-center gap-2 ${
+                  activeTab === "notes" ? "border-gold text-cream" : "border-transparent text-cream/50 hover:text-cream/80"
+                }`}
+              >
+                <FileText className="h-4 w-4" /> Lesson Notes
+              </button>
+            </div>
+          )}
+
+          {currentLesson && !showQuiz && activeTab === "video" && (
             <div className="relative aspect-video w-full bg-black">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(currentLesson.youtubeUrl)}?rel=0&modestbranding=1&playsinline=1`}
@@ -118,7 +180,6 @@ export default function CoursePlayer() {
                 title={currentLesson.title}
                 referrerPolicy="strict-origin-when-cross-origin"
               />
-              {/* Watermark: pointer-events:none so native mobile play/pause/fullscreen stay tappable */}
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-20" aria-hidden="true">
                 <span className="text-cream font-serif text-xl md:text-4xl rotate-[-25deg] whitespace-nowrap drop-shadow-lg select-none" style={{ WebkitUserSelect: "none" }}>
                   {currentUser.email || "Elaf-ul-Quran"} • Elaf-ul-Quran Academy
@@ -131,6 +192,24 @@ export default function CoursePlayer() {
                   <p className="text-cream/60 text-xs mt-1">Recording or sharing this lesson is prohibited.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {currentLesson && !showQuiz && activeTab === "notes" && notesPreviewUrl && (
+            <div className="bg-black">
+              <div className="relative w-full" style={{ height: "min(75vh, 900px)" }}>
+                <iframe
+                  src={notesPreviewUrl}
+                  className="absolute inset-0 w-full h-full"
+                  title={`Notes: ${currentLesson.title}`}
+                  allow="autoplay"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 text-xs text-cream/60 bg-navy-light border-t border-cream/10">
+                <ShieldAlert className="h-3.5 w-3.5 text-gold shrink-0" />
+                <span>Notes are view-only — download, print and copy are intentionally disabled by the teacher.</span>
+              </div>
             </div>
           )}
 
@@ -198,7 +277,6 @@ export default function CoursePlayer() {
           )}
         </div>
 
-        {/* Lesson list: appears below the video on mobile, as a right-side panel on lg+. */}
         <div className={`${sidebarOpen ? "block" : "hidden lg:block"} w-full lg:w-80 bg-navy-light border-t lg:border-t-0 lg:border-l border-cream/10 flex-shrink-0 overflow-y-auto`}>
           <div className="p-4">
             <h3 className="font-serif text-lg font-bold text-cream mb-4">Course Content</h3>
@@ -208,6 +286,7 @@ export default function CoursePlayer() {
                 {unit.lessons.map((lesson) => {
                   const isActive = lesson.id === currentLessonId;
                   const isCompleted = completedLessons.includes(lesson.id);
+                  const hasNotes = !!toDrivePreviewUrl(lesson.pdfUrl || "");
                   return (
                     <button key={lesson.id}
                       onClick={() => { setCurrentLessonId(lesson.id); setShowQuiz(false); setQuizSubmitted(false); setQuizAnswers({}); }}
@@ -216,7 +295,8 @@ export default function CoursePlayer() {
                       }`}
                     >
                       {isCompleted ? <CheckCircle className="h-4 w-4 text-emerald-light shrink-0" /> : <PlayCircle className="h-4 w-4 shrink-0" />}
-                      <span className="truncate">{lesson.title}</span>
+                      <span className="truncate flex-1">{lesson.title}</span>
+                      {hasNotes && <FileText className="h-3.5 w-3.5 text-gold/70 shrink-0" aria-label="Has notes" />}
                     </button>
                   );
                 })}
